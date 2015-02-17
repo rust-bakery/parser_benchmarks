@@ -1,0 +1,8 @@
+[package]
+
+name = "mp4"
+version = "0.0.1"
+authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
+
+[dependencies]
+nom = "~0.1.0"
