@@ -411,8 +411,8 @@ many0!(full_data_interpreter<&[u8],()> data_interpreter);
 use test::Bencher;
 #[bench]
 fn mp4_test(b: &mut Bencher) {
-  //let data = include_bytes!("../small.mp4");
-  let data = include_bytes!("../bigbuckbunny.mp4");
+  let data = include_bytes!("../small.mp4");
+  //let data = include_bytes!("../bigbuckbunny.mp4");
   b.iter(||{
     full_data_interpreter(data)
   });
@@ -421,7 +421,8 @@ fn mp4_test(b: &mut Bencher) {
 fn main() {
   println!("Hello, world!");
   let data = include_bytes!("../small.mp4");
-  full_data_interpreter(data);
+  println!("data:\n{}", data.to_hex(8));
+  //full_data_interpreter(data);
   //parse_mp4_file("./small.mp4");
   //parse_mp4_file("./bigbuckbunny.mp4");
 }
