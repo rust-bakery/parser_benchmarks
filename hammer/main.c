@@ -11,6 +11,8 @@ struct FileType {
 HParser* build_parser() {
   HParser *ftyp_tag = h_token("ftyp", 4);
   HParser *moov_tag = h_token("moov", 4);
+  HParser *free_tag = h_token("free", 4);
+  HParser *skip_tag = h_token("skip", 4);
   HParser *mdra_tag = h_token("mdra", 4);
   HParser *dref_tag = h_token("dref", 4);
   HParser *cmov_tag = h_token("cmov", 4);
