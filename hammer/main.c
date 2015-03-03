@@ -98,11 +98,11 @@ HParser* build_parser() {
   return complete_parser;
 }
 
-int main(int argc, char *argv[]) {
+void bench(char* name, char* path) {
   uint8_t input[1024];
   size_t inputsize;
 
-  FILE *fp = fopen ( "../small.mp4" , "rb" );
+  FILE *fp = fopen ( path , "rb" );
   fseek( fp , 0L , SEEK_END);
   long lSize = ftell( fp );
   rewind( fp );
@@ -113,11 +113,11 @@ int main(int argc, char *argv[]) {
   if( 1!=fread((void*)buffer , lSize, 1 , fp) )
     fclose(fp),free(buffer),fputs("entire read fails",stderr),exit(1);
 
-  printf("got a buffer of %ld bytes\n", lSize);
+  //printf("got a buffer of %ld bytes\n", lSize);
 
   HParser *parser = build_parser();
   //HParser *manyparser = h_many1(parser);
-  printf("built the parser\n");
+  //printf("built the parser\n");
 
   int iterations = 10000;
   double begin = get_time();
@@ -131,9 +131,15 @@ int main(int argc, char *argv[]) {
   }
   double end = get_time();
 
+  printf("\n\nbench %s:\n\n", name);
   printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
 
   printf("%f ns/iter\n", (end - begin) / iterations * 1e9);
   fclose(fp);
   free(buffer);
+}
+
+int main(int argc, char *argv[]) {
+  bench("small", "../small.mp4");
+  bench("bigbuckbunny", "../bigbuckbunny.mp4");
 }

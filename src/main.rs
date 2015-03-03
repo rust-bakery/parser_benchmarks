@@ -14,6 +14,7 @@ fn mp4_box(input:&[u8]) -> IResult<&[u8], &[u8]> {
   match be_u32(input) {
     Done(i, offset) => {
       let sz: usize = offset as usize;
+      //println!("size: {}", sz);
       if i.len() >= sz - 4 {
         return Done(&i[(sz-4)..], &i[0..(sz-4)])
       } else {
@@ -233,6 +234,7 @@ take!(major_brand_version 4);
 many0!(compatible_brands<&[u8], &str> brand_name);
 
 fn filetype_parser<'a>(input: &'a[u8]) -> IResult<&'a [u8], FileType<'a> > {
+  //println!("ftyp:\n{}", input.to_hex(8));
   chaining_parser!(input,
     m: brand_name          ~
     v: major_brand_version ~
@@ -410,9 +412,16 @@ many0!(full_data_interpreter<&[u8],()> data_interpreter);
 
 use test::Bencher;
 #[bench]
-fn mp4_test(b: &mut Bencher) {
+fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../small.mp4");
-  //let data = include_bytes!("../bigbuckbunny.mp4");
+  b.iter(||{
+    full_data_interpreter(data)
+  });
+}
+
+#[bench]
+fn bigbuckbunny_test(b: &mut Bencher) {
+  let data = include_bytes!("../bigbuckbunny.mp4");
   b.iter(||{
     full_data_interpreter(data)
   });
@@ -421,8 +430,6 @@ fn mp4_test(b: &mut Bencher) {
 fn main() {
   println!("Hello, world!");
   let data = include_bytes!("../small.mp4");
-  println!("data:\n{}", data.to_hex(8));
-  //full_data_interpreter(data);
-  //parse_mp4_file("./small.mp4");
-  //parse_mp4_file("./bigbuckbunny.mp4");
+  //println!("data:\n{}", data.to_hex(8));
+  full_data_interpreter(data);
 }
