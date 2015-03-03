@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import           Control.Applicative              ((<$>), (<*>))
+import           Criterion.Main                   (bench, bgroup, defaultMain,
+                                                   env, nfIO, whnf, whnfIO)
 import qualified Data.Attoparsec.Binary           as Bin
 import qualified Data.Attoparsec.ByteString.Char8 as C
 import qualified Data.ByteString                  as B
@@ -37,5 +39,22 @@ smallFile = "../small.mp4"
 bunnyFile :: FilePath
 bunnyFile = "../bigbuckbunny.mp4"
 
+setupEnv = do
+  small <- B.readFile smallFile
+  bunny <- B.readFile bunnyFile
+  return (small, bunny)
+
+criterion :: IO ()
+criterion = defaultMain
+    [
+      env setupEnv $ \ ~(small,bunny) ->
+      bgroup "IO"
+        [
+          bench "small"          $ whnf (C.parseOnly mp4Parser) small
+        , bench "big buck bunny" $ whnf (C.parseOnly mp4Parser) bunny
+        ]
+    ]
+
 main :: IO ()
-main = B.readFile smallFile >>= print . C.parseOnly mp4Parser
+main = criterion
+--main = B.readFile smallFile >>= print . C.parseOnly mp4Parser
