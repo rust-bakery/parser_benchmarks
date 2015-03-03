@@ -14,12 +14,6 @@ import           Data.Word
 data LV = LV Int BOX deriving Show
 data BOX = FTYP B.ByteString Word32 [B.ByteString] | FREE deriving Show
 
-mp4Box :: C.Parser LV
-mp4Box = do
-  length <- fromIntegral <$> Bin.anyWord32be
-  Right value  <- C.parseOnly anyBox <$> (C.take $ length - 4)
-  return $ LV length value
-
 ftypBox :: C.Parser BOX
 ftypBox = do
   C.string "ftyp"
@@ -28,7 +22,17 @@ ftypBox = do
   compatible_brands   <- C.many' (C.take 4)
   return $ FTYP major_brand major_brand_version compatible_brands
 
-anyBox = C.choice [ftypBox]
+freeBox = do
+  C.string "free"
+  return $ FREE
+
+mp4Box :: C.Parser LV
+mp4Box = do
+  length <- fromIntegral <$> Bin.anyWord32be
+  Right value  <- C.parseOnly anyBox <$> (C.take $ length - 4)
+  return $ LV length value
+
+anyBox = C.choice [ftypBox, freeBox]
 
 mp4Parser = C.many1 mp4Box
 
