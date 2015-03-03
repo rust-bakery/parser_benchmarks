@@ -84,14 +84,19 @@ HParser* build_parser() {
   HParser *clip_tag = h_token("clip", 4);
   HParser *trak_tag = h_token("trak", 4);
   HParser *udta_tag = h_token("udta", 4);
+  HParser *mdat_tag = h_token("mdat", 4);
 
 
-  HParser *tag      = h_choice(ftyp_tag, moov_tag, mdra_tag, dref_tag, cmov_tag, rmra_tag, iods_tag, mvhd_tag, clip_tag, trak_tag, udta_tag, NULL);
+  HParser *tag      = h_choice(ftyp_tag, moov_tag, mdat_tag, mdra_tag, dref_tag, cmov_tag, rmra_tag, iods_tag, mvhd_tag, clip_tag, trak_tag, udta_tag, NULL);
+
 
   //HParser *ftyp_box  = h_length_value(h_left(h_uint32(), ftyp_tag), h_uint8());
   HParser *ftyp_box  = h_action(h_length_value(h_left(h_uint32(), ftyp_tag), h_uint8()), ftyp_action, NULL);
   HParser *free_box  = h_length_value(h_left(h_uint32(), free_tag), h_uint8());
-  HParser *mp4_box  = h_choice(ftyp_box, free_box, NULL);
+  HParser *skip_box  = h_length_value(h_left(h_uint32(), skip_tag), h_uint8());
+  HParser *moov_box  = h_length_value(h_left(h_uint32(), moov_tag), h_uint8());
+  HParser *mdat_box  = h_length_value(h_left(h_uint32(), mdat_tag), h_uint8());
+  HParser *mp4_box  = h_choice(ftyp_box, free_box, skip_box, moov_box, mdat_box, NULL);
   //HParser *mp4_box  = h_length_value(h_left(h_uint32(), ftyp), h_uint8());
   //return mp4_box;
 
