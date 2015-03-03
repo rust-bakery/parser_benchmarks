@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <math.h>
 
 
 double get_time() {
@@ -119,22 +120,35 @@ void bench(char* name, char* path) {
   //HParser *manyparser = h_many1(parser);
   //printf("built the parser\n");
 
-  int iterations = 10000;
-  double begin = get_time();
+  int iterations = 100000;
+  double measured[100000];
+  double acc = 0;
+
   for(int i = 0; i < iterations; i++) {
+    double begin = get_time();
     HParseResult *result = h_parse(parser, buffer, lSize);
     if(result) {
     //    printf("yay!\n");
     } else {
         printf("nay!\n");
     }
+    double end = get_time();
+    measured[i] = end - begin;
+    acc += measured[i];
   }
-  double end = get_time();
 
-  printf("\n\nbench %s:\n\n", name);
-  printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
+  double mean = acc / iterations;
+  double acc2 = 0;
+  for(int t =0; t < iterations; t++) {
+    acc2 = pow(fabs(measured[t] - mean), 2);
+  }
 
-  printf("%f ns/iter\n", (end - begin) / iterations * 1e9);
+  double variance = acc2 / iterations;
+  printf("\n\nbench %s:\n", name);
+  //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
+
+
+  printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
   fclose(fp);
   free(buffer);
 }
