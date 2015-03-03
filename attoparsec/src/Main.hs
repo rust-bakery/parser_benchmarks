@@ -1,8 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- This attoparsec module is intended for parsing text that is
--- represented using an 8-bit character set, e.g. ASCII or ISO-8859-15.
---import qualified Data.Attoparsec.ByteString.Char8
 import           Control.Applicative              ((<$>), (<*>))
 import qualified Data.Attoparsec.Binary           as Bin
 import qualified Data.Attoparsec.ByteString.Char8 as C
@@ -10,7 +7,6 @@ import qualified Data.ByteString                  as B
 import qualified Data.ByteString.Char8            as C8
 import           Data.Word
 
---data LV = LV Int B.ByteString deriving Show
 data LV = LV Int BOX deriving Show
 data BOX = FTYP B.ByteString Word32 [B.ByteString] | FREE deriving Show
 
