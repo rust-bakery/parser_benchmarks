@@ -13,7 +13,7 @@ data LV = LV Word32 B.ByteString deriving Show
 mp4Box :: C.Parser LV
 mp4Box = do
   length <- Bin.anyWord32be
-  value  <- C.take 4
+  value  <- C.take . fromIntegral $ length - 4
   return $ LV length value
 
 mp4Parser = C.many1 mp4Box
