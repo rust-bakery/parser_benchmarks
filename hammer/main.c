@@ -30,14 +30,14 @@ HParser* build_parser() {
   HParser *tag      = h_choice(ftyp_tag, moov_tag, mdra_tag, dref_tag, cmov_tag, rmra_tag, iods_tag, mvhd_tag, clip_tag, trak_tag, udta_tag, NULL);
 
   // does not work: the length is the offset from the beginning of the box
-  HParser *mp4_box  = h_length_value(h_uint32(), ftyp);
-  //HParser *mp4_box  = h_sequence(h_uint32(), ftyp);
-  //HParser *mp4_box  = h_sequence(h_uint32(), ftyp, NULL);
+  HParser *ftyp_box  = h_length_value(h_left(h_uint32(), ftyp_tag), h_uint8());
+  HParser *free_box  = h_length_value(h_left(h_uint32(), free_tag), h_uint8());
+  HParser *mp4_box  = h_choice(ftyp_box, free_tag, NULL);
+  //HParser *mp4_box  = h_length_value(h_left(h_uint32(), ftyp), h_uint8());
+  //return mp4_box;
 
-  //HParser *complete_parser = h_many1(mp4_box);
-  //return complete_parser;
-
-  return mp4_box;
+  HParser *complete_parser = h_many1(mp4_box);
+  return complete_parser;
 }
 
 int main(int argc, char *argv[]) {
