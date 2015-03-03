@@ -2,6 +2,17 @@
 #include <hammer/internal.h>
 #include <hammer/glue.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+
+double get_time() {
+    struct timeval t;
+    struct timezone tzp;
+    gettimeofday(&t, &tzp);
+    return t.tv_sec + t.tv_usec*1e-6;
+}
 
 struct FileType {
   char*   major_brand;
@@ -10,7 +21,7 @@ struct FileType {
 };
 
 HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
-  printf("token type: %d\n", p->ast->token_type);
+  //printf("token type: %d\n", p->ast->token_type);
   if( p->ast->token_type == TT_SEQUENCE) {
     char* buffer = h_arena_malloc(p->ast->seq->arena, p->ast->seq->used);
     for (size_t i=0; i<p->ast->seq->used; ++i) {
@@ -23,7 +34,7 @@ HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
     HParseResult *res = h_parse(ftyp, buffer + 8, p->ast->seq->used - 8);
 
     if(res) {
-      printf("parsed ftyp\n");
+      //printf("parsed ftyp\n");
 
       struct FileType* ft         = h_arena_malloc(p->ast->seq->arena, sizeof(struct FileType));
       ft->major_brand             = h_arena_malloc(p->ast->seq->arena, 5);
@@ -41,8 +52,8 @@ HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
       for (size_t i=0; i < (p->ast->seq->used - 8); ++i) {
         ft->compatible_brands[i] = H_CAST_UINT(p->ast->seq->elements[i+8]);
       }
-      printf("major brand: %s\n major version: %04X\ncompatible brands: %s\n",
-        ft->major_brand, ft->major_brand_version, ft->compatible_brands);
+      //printf("major brand: %s\n major version: %04X\ncompatible brands: %s\n",
+      //  ft->major_brand, ft->major_brand_version, ft->compatible_brands);
 
       h_arena_free(p->ast->seq->arena, ft->major_brand);
       h_arena_free(p->ast->seq->arena, ft->major_brand_version);
@@ -79,7 +90,7 @@ HParser* build_parser() {
   //HParser *ftyp_box  = h_length_value(h_left(h_uint32(), ftyp_tag), h_uint8());
   HParser *ftyp_box  = h_action(h_length_value(h_left(h_uint32(), ftyp_tag), h_uint8()), ftyp_action, NULL);
   HParser *free_box  = h_length_value(h_left(h_uint32(), free_tag), h_uint8());
-  HParser *mp4_box  = h_choice(ftyp_box, free_tag, NULL);
+  HParser *mp4_box  = h_choice(ftyp_box, free_box, NULL);
   //HParser *mp4_box  = h_length_value(h_left(h_uint32(), ftyp), h_uint8());
   //return mp4_box;
 
@@ -108,14 +119,21 @@ int main(int argc, char *argv[]) {
   //HParser *manyparser = h_many1(parser);
   printf("built the parser\n");
 
-  //HParser *parser = h_uint32();
-  HParseResult *result = h_parse(parser, buffer, lSize);
-  if(result) {
-      printf("yay!\n");
-  } else {
-      printf("nay!\n");
+  int iterations = 10000;
+  double begin = get_time();
+  for(int i = 0; i < iterations; i++) {
+    HParseResult *result = h_parse(parser, buffer, lSize);
+    if(result) {
+    //    printf("yay!\n");
+    } else {
+        printf("nay!\n");
+    }
   }
+  double end = get_time();
 
+  printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
+
+  printf("%f ns/iter\n", (end - begin) / iterations * 1e9);
   fclose(fp);
   free(buffer);
 }
