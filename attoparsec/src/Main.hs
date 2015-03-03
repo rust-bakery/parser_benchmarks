@@ -33,7 +33,7 @@ anyBox = C.choice [ftypBox]
 mp4Parser = C.many1 mp4Box
 
 smallFile :: FilePath
-smallFile = "small.mp4"
+smallFile = "../small.mp4"
 bunnyFile :: FilePath
 bunnyFile = "../bigbuckbunny.mp4"
 
