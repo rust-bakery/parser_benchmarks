@@ -33,6 +33,9 @@ HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
     HParser* brands   = h_many(brand);
     HParser* ftyp     = h_sequence(brand, h_uint32(), brands, NULL);
     HParseResult *res = h_parse(ftyp, buffer + 8, p->ast->seq->used - 8);
+    system_allocator.free(&system_allocator, ftyp);
+    system_allocator.free(&system_allocator, brands);
+    system_allocator.free(&system_allocator, brand);
 
     if(res) {
       //printf("parsed ftyp\n");
@@ -61,7 +64,8 @@ HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
       h_arena_free(p->ast->seq->arena, ft->compatible_brands);
       h_arena_free(p->ast->seq->arena, ft);
       h_arena_free(p->ast->seq->arena, buffer);
-      return res;
+      h_parse_result_free(res);
+      //return res;
     } else {
       printf("did not parse ftyp\n");
       h_arena_free(p->ast->seq->arena, buffer);
@@ -96,7 +100,7 @@ HParser* build_parser() {
   HParser *skip_box  = h_length_value(h_left(h_uint32(), skip_tag), h_uint8());
   HParser *moov_box  = h_length_value(h_left(h_uint32(), moov_tag), h_uint8());
   HParser *mdat_box  = h_length_value(h_left(h_uint32(), mdat_tag), h_uint8());
-  HParser *mp4_box  = h_choice(ftyp_box, free_box, skip_box, moov_box, mdat_box, NULL);
+  HParser *mp4_box   = h_choice(ftyp_box, free_box, skip_box, moov_box, mdat_box, NULL);
   //HParser *mp4_box  = h_length_value(h_left(h_uint32(), ftyp), h_uint8());
   //return mp4_box;
 
@@ -134,6 +138,7 @@ void bench(char* name, char* path) {
     HParseResult *result = h_parse(parser, buffer, lSize);
     if(result) {
     //    printf("yay!\n");
+      h_parse_result_free(result);
     } else {
         printf("nay!\n");
     }
