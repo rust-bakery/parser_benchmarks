@@ -217,6 +217,7 @@ pub enum MoovBox {
 enum MP4Box<'a> {
   Ftyp(FileType<'a>),
   Moov(Vec<MoovBox>),
+  MoovReduced,
   Mdat,
   Free,
   Skip,
@@ -350,6 +351,9 @@ fn moov_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
   }
 }
 
+fn moov_reduced_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
+  moov_tag(input).map(|_| MP4Box::MoovReduced)
+}
 tag!(mdat    "mdat".as_bytes());
 fn mdat_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
   mdat(input).map(|_| MP4Box::Mdat)
@@ -373,7 +377,9 @@ fn unknown_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
   Done(input, MP4Box::Unknown)
 }
 
-alt!(box_parser_internal<&[u8], MP4Box>, filetype_box | moov_box | mdat_box | free_box | skip_box | wide_box | unknown_box);
+//As the other parsers do not implement moov or mvhd parsing yet, do not parse the moov data
+//alt!(box_parser_internal<&[u8], MP4Box>, filetype_box | moov_box | mdat_box | free_box | skip_box | wide_box | unknown_box);
+alt!(box_parser_internal<&[u8], MP4Box>, filetype_box | moov_reduced_box | mdat_box | free_box | skip_box | wide_box | unknown_box);
 fn box_parser(input:&[u8]) -> IResult<&[u8], MP4Box> {
   mp4_box(input).flat_map(box_parser_internal)
 }
