@@ -21,6 +21,8 @@ struct FileType {
   char*   compatible_brands;
 };
 
+HParser* ftyp = NULL;
+
 HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
   //printf("token type: %d\n", p->ast->token_type);
   if( p->ast->token_type == TT_SEQUENCE) {
@@ -29,13 +31,7 @@ HParsedToken *ftyp_action(const HParseResult *p, void *user_data) {
       buffer[i] = H_CAST_UINT(p->ast->seq->elements[i]);
     }
 
-    HParser* brand    = h_repeat_n(h_choice(h_ch_range('0', '9'), h_ch_range('a', 'z'), NULL), 4);
-    HParser* brands   = h_many(brand);
-    HParser* ftyp     = h_sequence(brand, h_uint32(), brands, NULL);
     HParseResult *res = h_parse(ftyp, buffer + 8, p->ast->seq->used - 8);
-    system_allocator.free(&system_allocator, ftyp);
-    system_allocator.free(&system_allocator, brands);
-    system_allocator.free(&system_allocator, brand);
 
     if(res) {
       //printf("parsed ftyp\n");
@@ -90,6 +86,9 @@ HParser* build_parser() {
   HParser *udta_tag = h_token("udta", 4);
   HParser *mdat_tag = h_token("mdat", 4);
 
+  HParser* brand    = h_repeat_n(h_choice(h_ch_range('0', '9'), h_ch_range('a', 'z'), NULL), 4);
+  HParser* brands   = h_many(brand);
+  ftyp              = h_sequence(brand, h_uint32(), brands, NULL);
 
   HParser *tag      = h_choice(ftyp_tag, moov_tag, mdat_tag, mdra_tag, dref_tag, cmov_tag, rmra_tag, iods_tag, mvhd_tag, clip_tag, trak_tag, udta_tag, NULL);
 
