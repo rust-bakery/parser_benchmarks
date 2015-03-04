@@ -2,11 +2,11 @@
 
 This repository holds three different versions of a partial MP4 file parser, written in:
 
-- Rust, with Geal/nom
-- Haskell with bos/attoparsec
-- C with UpstandingHackers/hammer
+- Rust, with [Geal/nom](https://github.com/Geal/nom)
+- Haskell with [bos/attoparsec](https://github.com/bos/attoparsec)
+- C with [UpstandingHackers/hammer](https://github.com/UpstandingHackers/hammer)
 
-The goal is to compare their usability and their performance on a real world binary file format. As with all benchmarks, the results must be taken with a grain of salt. This is not a formal comparison of languages, but an experiment to check where the nom parser stands against more established parser libraries, in terms of performance and usability. I welcome any idea or contribution to improve performance for either of the parsers, or improve statistical significance.
+The goal is to compare their usability and their performance on a real world binary file format. As with all benchmarks, the results must be taken with a grain of salt. This is not a formal comparison of languages, but an experiment to check where the *nom* parser library stands against more established parser libraries, in terms of performance and usability. I welcome any idea or contribution to improve performance for either of the parsers, or improve statistical significance.
 
 The parsers have been written in the most naive way, to make them as deterministic as possible. In each benchmark, the files are completely loaded in memory before measuring, and the parser is applied repeatedly to the buffer in memory. The hammer parser has some slight memory leaks, the developers have been notified of this and the bugs will be fixed in the future.
 
