@@ -90,10 +90,23 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 - Haskell: `Glasgow Haskell Compiler, Version 7.8.4, stage 2 booted by GHC version 7.8.3`, attoparsec-0.12.1.3, attoparsec-binary-0.2
 - C: `Apple LLVM version 6.0 (clang-600.0.56) (based on LLVM 3.5svn)`, hammer at commit: UpstandingHackers/hammer#4e8d319d0e33456e6141f24a44dcf94dd5ce346a
 
+### Without optimizations, and with debug symbols
+
 |            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
 | attoparsec | 1699 ns/iter (+/- 137.6) | 1601 ns/iter (+/- 105.3)  |
+| nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
+
+### After some optimizations
+
+- `-O2 -fllvm`for Haskell
+- Building hammer with `scons --variant=opt`, adding `-Ofast -DNDEBUG` and removing `-g` to the gcc line
+
+|            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
+| ---------- | ------------------------ | ------------------------- |
+| hammer     | 32424 ns/iter            | 26523 ns/iter             |
+| attoparsec | 1580 ns/iter (+/- 104.3) | 1514 ns/iter (+/- 93.81)  |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
 
