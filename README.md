@@ -115,13 +115,13 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 ### After some optimizations
 
 - `cargo bench` for nom
-- `-O2 -fllvm`for Haskell
+- `-O2 -fllvm` for Haskell (using llvm 3.4)
 - Building hammer with `scons --variant=opt`, adding `-Ofast -DNDEBUG` and removing `-g` to the gcc line
 
 |            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32424 ns/iter            | 26523 ns/iter             |
-| attoparsec | 1580 ns/iter (+/- 104.3) | 1514 ns/iter (+/- 93.81)  |
+| attoparsec | 1548 ns/iter (+/- 73.81) | 1476 ns/iter (+/- 69.61)  |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
 
