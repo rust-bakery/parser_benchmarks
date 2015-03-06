@@ -29,6 +29,20 @@ test small_test        ... bench:       238 ns/iter (+/- 64)
 test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured
 ```
 
+To run it without optimizations:
+
+```shell
+$ cargo test
+[...]
+$ ./target/mp4-<hash> --bench
+
+running 2 tests
+test bigbuckbunny_test ... bench:      9083 ns/iter (+/- 2193)
+test small_test        ... bench:      9619 ns/iter (+/- 1538)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured
+
+
 #attoparsec
 
 Get the Haskell binaries from the[Haskell website](https://www.haskell.org/downloads).
@@ -67,7 +81,7 @@ Clone the [hammer repository](https://github.com/UpstandingHackers/hammer) and f
 Then go into the hammer subdirectory and compile the benchmark:
 
 ```shell
-gcc -g -o mp4 main.c -I/usr/local/include -L/usr/local/lib -lhammer
+gcc -o mp4 main.c -I/usr/local/include -L/usr/local/lib -lhammer
 ```
 
 (this assumes than hammer has been installed in /usr/local).
@@ -96,10 +110,11 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
 | attoparsec | 1699 ns/iter (+/- 137.6) | 1601 ns/iter (+/- 105.3)  |
-| nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
+| nom        | 9619 ns/iter (+/- 1538)  | 9083 ns/iter (+/- 2193)   |
 
 ### After some optimizations
 
+- `cargo bench` for nom
 - `-O2 -fllvm`for Haskell
 - Building hammer with `scons --variant=opt`, adding `-Ofast -DNDEBUG` and removing `-g` to the gcc line
 
