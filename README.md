@@ -43,7 +43,6 @@ test small_test        ... bench:      9619 ns/iter (+/- 1538)
 test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured
 ```
 
-
 # attoparsec
 
 Get the Haskell binaries from the [Haskell website](https://www.haskell.org/downloads).
