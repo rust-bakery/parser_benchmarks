@@ -3,7 +3,7 @@
 This repository holds three different versions of a partial MP4 file parser, written in:
 
 - Rust, with [Geal/nom](https://github.com/Geal/nom)
-- Haskell with [bos/attoparsec](https://github.com/bos/attoparsec)
+- Haskell with [bos/attoparsec](https://github.com/bos/attoparsec) and [GaloisInc/cereal](https://github.com/GaloisInc/cereal)
 - C with [UpstandingHackers/hammer](https://github.com/UpstandingHackers/hammer)
 
 The goal is to compare their usability and their performance on a real world binary file format. As with all benchmarks, the results must be taken with a grain of salt. This is not a formal comparison of languages, but an experiment to check where the *nom* parser library stands against more established parser libraries, in terms of performance and usability. I welcome any idea or contribution to improve performance for either of the parsers, or improve statistical significance.
@@ -110,6 +110,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
 | attoparsec | 1699 ns/iter (+/- 137.6) | 1601 ns/iter (+/- 105.3)  |
+| cereal     | 232 ns/iter (+/- 78)     | 230 ns/iter (+/- 61)      |
 | nom        | 9619 ns/iter (+/- 1538)  | 9083 ns/iter (+/- 2193)   |
 
 ### After some optimizations
@@ -122,6 +123,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32424 ns/iter            | 26523 ns/iter             |
 | attoparsec | 1548 ns/iter (+/- 73.81) | 1476 ns/iter (+/- 69.61)  |
+| cereal     | 223 ns/iter (+/- 77)     | 227 ns/iter (+/- 52)      |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
 
