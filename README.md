@@ -43,7 +43,7 @@ test small_test        ... bench:      9619 ns/iter (+/- 1538)
 test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured
 ```
 
-# attoparsec
+# attoparsec and cereal
 
 Get the Haskell binaries from the [Haskell website](https://www.haskell.org/downloads).
 
@@ -110,20 +110,21 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
 | attoparsec | 1699 ns/iter (+/- 137.6) | 1601 ns/iter (+/- 105.3)  |
-| cereal     | 232 ns/iter (+/- 78)     | 230 ns/iter (+/- 61)      |
+| cereal     | 203 ns/iter (+/- 7.1)    | 203 ns/iter (+/- 11)      |
 | nom        | 9619 ns/iter (+/- 1538)  | 9083 ns/iter (+/- 2193)   |
 
 ### After some optimizations
 
 - `cargo bench` for nom
-- `-O2 -fllvm` for Haskell (using llvm 3.4)
+- `-O2 -fllvm` for  attoparsec (using llvm 3.4)
+- `-O2` for cereal (apparently, using llvm makes it slower, around 250 ns per iteration)
 - Building hammer with `scons --variant=opt`, adding `-Ofast -DNDEBUG` and removing `-g` to the gcc line
 
 |            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32424 ns/iter            | 26523 ns/iter             |
 | attoparsec | 1548 ns/iter (+/- 73.81) | 1476 ns/iter (+/- 69.61)  |
-| cereal     | 223 ns/iter (+/- 77)     | 227 ns/iter (+/- 52)      |
+| cereal     | 189 ns/iter (+/- 9.9)    | 193 ns/iter (+/- 12.4)    |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
 
