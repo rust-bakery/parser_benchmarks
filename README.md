@@ -41,11 +41,11 @@ test bigbuckbunny_test ... bench:      9083 ns/iter (+/- 2193)
 test small_test        ... bench:      9619 ns/iter (+/- 1538)
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 2 measured
+```
 
+# attoparsec
 
-#attoparsec
-
-Get the Haskell binaries from the[Haskell website](https://www.haskell.org/downloads).
+Get the Haskell binaries from the [Haskell website](https://www.haskell.org/downloads).
 
 Go to the attoparsec subdirectory of the repository, and run the following commands to install all the dependencies:
 
