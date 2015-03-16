@@ -109,7 +109,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 |            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
-| attoparsec | 1699 ns/iter (+/- 137.6) | 1601 ns/iter (+/- 105.3)  |
+| attoparsec | 1244 ns/iter (+/- 71.7)  | 1183 ns/iter (+/- 60.1)   |
 | cereal     | 203 ns/iter (+/- 7.1)    | 203 ns/iter (+/- 11)      |
 | nom        | 9619 ns/iter (+/- 1538)  | 9083 ns/iter (+/- 2193)   |
 
@@ -123,7 +123,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 |            | small.mp4 (375 kB)       | bigbuckbunny.mp4 (5.3 MB) |
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32424 ns/iter            | 26523 ns/iter             |
-| attoparsec | 1548 ns/iter (+/- 73.81) | 1476 ns/iter (+/- 69.61)  |
+| attoparsec | 1138 ns/iter (+/- 55.2)  | 1124 ns/iter (+/- 62.3)   |
 | cereal     | 189 ns/iter (+/- 9.9)    | 193 ns/iter (+/- 12.4)    |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
