@@ -7,8 +7,8 @@ version:             0.1.0.0
 -- description:         
 license:             MIT
 license-file:        LICENSE
-author:              Geoffroy Couprie
-maintainer:          geo.couprie@gmail.com
+author:              Arne Link
+maintainer:          link.arne@gmail.com
 -- copyright:           
 category:            Testing
 build-type:          Simple
