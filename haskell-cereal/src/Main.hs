@@ -2,21 +2,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Control.Monad       (replicateM)
 import           Criterion.Main      (bench, bgroup, defaultMain, env, whnf)
 import qualified Data.ByteString     as B
 import           Data.Serialize.Get hiding (skip, remaining, label)
 import           Data.Word
+import qualified Data.Vector         as V
 
-data LV = LV Int BOX deriving Show
-data BOX = FTYP B.ByteString Word32 [B.ByteString] | FREE | MOOV | SKIP | MDAT deriving Show
+data LV = LV {-# UNPACK #-} !Int {-# UNPACK #-} !BOX deriving Show
+data BOX
+    = FTYP {-# UNPACK #-} !B.ByteString
+           {-# UNPACK #-} !Word32
+           {-# UNPACK #-} !(V.Vector B.ByteString)
+    | FREE
+    | MOOV
+    | SKIP
+    | MDAT deriving Show
 
 ftypBox :: Int -> Get BOX
 ftypBox l = do
   major_brand         <- getBytes 4
   major_brand_version <- getWord32be
   let remaining       = (l - 8) `div` 4
-  compatible_brands   <- replicateM remaining (getBytes 4)
+  compatible_brands   <- V.replicateM remaining (getBytes 4)
   return $ FTYP major_brand major_brand_version compatible_brands
 
 mp4Box :: Get LV
