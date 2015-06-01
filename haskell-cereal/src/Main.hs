@@ -2,7 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Criterion.Main      (bench, bgroup, defaultMain, env, whnf)
+import           Control.Monad       (replicateM)
+import           Criterion.Main      (bench, bgroup, defaultMain, env, nf, nf)
+import           Control.DeepSeq     (NFData(..))
 import qualified Data.ByteString     as B
 import           Data.Serialize.Get hiding (skip, remaining, label)
 import           Data.Word
@@ -17,6 +19,13 @@ data BOX
     | MOOV
     | SKIP
     | MDAT deriving Show
+
+instance NFData LV where
+  rnf (LV i box) = i `seq` rnf box
+
+instance NFData BOX where
+  rnf (FTYP b w bs) = b `seq` w `seq` rnf bs
+  rnf a = a `seq` ()
 
 ftypBox :: Int -> Get BOX
 ftypBox l = do
@@ -70,8 +79,8 @@ criterion = defaultMain
       env setupEnv $ \ ~(small,bunny) ->
       bgroup "IO"
         [
-          bench "small"          $ whnf (runGet mp4Parser) small
-        , bench "big buck bunny" $ whnf (runGet mp4Parser) bunny
+          bench "small"          $ nf (runGet mp4Parser) small
+        , bench "big buck bunny" $ nf (runGet mp4Parser) bunny
         ]
     ]
 

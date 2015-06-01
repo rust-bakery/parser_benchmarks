@@ -1,1 +1,5 @@
 /target
+Cargo.lock
+**/dist
+**/.cabal-sandbox
+**/cabal.sandbox.config
