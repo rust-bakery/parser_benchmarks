@@ -110,7 +110,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32807 ns/iter            | 28115 ns/iter             |
 | attoparsec | 1244 ns/iter (+/- 71.7)  | 1183 ns/iter (+/- 60.1)   |
-| cereal     | 203 ns/iter (+/- 7.1)    | 203 ns/iter (+/- 11)      |
+| cereal     | 178 ns/iter (+/- 2.2)    | 177 ns/iter (+/- 3)       |
 | nom        | 9619 ns/iter (+/- 1538)  | 9083 ns/iter (+/- 2193)   |
 
 ### After some optimizations
@@ -124,7 +124,7 @@ The results of the commands in this readme come from a late 2013 Macbook Pro, qu
 | ---------- | ------------------------ | ------------------------- |
 | hammer     | 32424 ns/iter            | 26523 ns/iter             |
 | attoparsec | 1138 ns/iter (+/- 55.2)  | 1124 ns/iter (+/- 62.3)   |
-| cereal     | 189 ns/iter (+/- 9.9)    | 193 ns/iter (+/- 12.4)    |
+| cereal     | 184 ns/iter (+/- 3.2)    | 181 ns/iter (+/- 3.4)     |
 | nom        | 240 ns/iter (+/- 56)     | 195 ns/iter (+/- 69)      |
 
 
