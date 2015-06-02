@@ -20,7 +20,7 @@ executable mp4
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       criterion, attoparsec-binary, bytestring, attoparsec, base >=4.7 && <4.8
+  build-depends:       criterion, attoparsec-binary, bytestring, attoparsec, vector, deepseq, base >=4.7 && <4.8
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -O2 -fllvm -pgmlo opt-3.4 -pgmlc llc-3.4
