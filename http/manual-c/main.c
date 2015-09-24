@@ -252,7 +252,6 @@ void bench(char* name, char* path) {
 
   p.data = &data;
 
-  http_parser_init(&p, HTTP_REQUEST);
 
   data.count = 0;
   data.req.method = NULL;
@@ -271,8 +270,13 @@ void bench(char* name, char* path) {
   for(int i = 0; i < iterations; i++) {
     //printf("i: %d\n", i);
     get_time(&t1);
-    ssize_t np = http_parser_execute(&p, &s, buffer, lSize);
-    //printf("np: %zu\n", np);
+    ssize_t np = 0;
+    do {
+      //printf("passing:\n%s", buffer + np);
+      http_parser_init(&p, HTTP_REQUEST);
+      np += http_parser_execute(&p, &s, buffer + np, lSize - np);
+      //printf("np: %zu\n", np);
+    } while (np < lSize);
     if (np != lSize) {
       fprintf(stderr, "parse failed\n");
       break;

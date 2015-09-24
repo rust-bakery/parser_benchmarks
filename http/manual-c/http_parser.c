@@ -1844,6 +1844,10 @@ reexecute:
         int hasBody;
         STRICT_CHECK(ch != LF);
 
+        //printf("LEN: %d\n", p - data);
+        //printf("%s", p);
+        return p - data;
+
         parser->nread = 0;
 
         hasBody = parser->flags & F_CHUNKED ||
