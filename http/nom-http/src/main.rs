@@ -36,6 +36,9 @@ fn is_space(c: u8) -> bool {
     c == b' '
 }
 
+fn is_not_space(c: u8)        -> bool { c != b' ' }
+fn is_horizontal_space(c: u8) -> bool { c == b' ' || c == b'\t' }
+
 fn is_version(c: u8) -> bool {
     c >= b'0' && c <= b'9' || c == b'.'
 }
@@ -43,10 +46,11 @@ fn is_version(c: u8) -> bool {
 named!(line_ending, alt!(tag!("\n") | tag!("\r\n")));
 
 named!(request_line(&'a [u8]) -> Request<'a>, chain!(
-    method: filter!(is_token) ~
-    filter!(is_space) ~
-    url: take_until_and_consume!(" ") ~
-    version: http_version ~
+    method: take_while1!(is_token)     ~
+            take_while1!(is_space)     ~
+    url:    take_while1!(is_not_space) ~
+            take_while1!(is_space)     ~
+    version: http_version              ~
     line_ending,
     
     || Request {
@@ -56,21 +60,21 @@ named!(request_line(&'a [u8]) -> Request<'a>, chain!(
     }));
 
 named!(http_version, chain!(
-    tag!("HTTP/") ~
-    version: filter!(is_version),
+    tag!("HTTP/")                    ~
+    version: take_while1!(is_version),
     
     || version));
 
 named!(message_header_value, chain!(
-    many1!(alt!(tag!(" ") | tag!("\t"))) ~
-    data: filter!(not_line_ending) ~
+          take_while1!(is_horizontal_space) ~
+    data: take_while1!(not_line_ending)     ~
     line_ending,
     
     || data));
 
 named!(message_header(&'a [u8]) -> Header<'a>, chain!(
-    name: filter!(is_token) ~
-    tag!(":") ~
+    name:   take_while1!(is_token) ~
+            char!(':') ~
     values: many1!(message_header_value),
     
     || Header {
@@ -79,9 +83,9 @@ named!(message_header(&'a [u8]) -> Header<'a>, chain!(
     }));
 
 named!(request(&'a [u8]) -> (Request<'a>, Vec<Header<'a>>), chain!(
-    req: request_line ~
+    req: request_line           ~
     h:   many1!(message_header) ~
-    line_ending,
+         line_ending,
     
     || (req, h)));
 
@@ -119,7 +123,7 @@ fn small_test(b: &mut Bencher) {
 
 #[bench]
 fn bigger_test(b: &mut Bencher) {
-  let data = include_bytes!("../../requests.txt");
+  let data = include_bytes!("../../bigger.txt");
   b.iter(||{
     parse(data)
   });
