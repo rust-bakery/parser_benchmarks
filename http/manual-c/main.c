@@ -31,11 +31,10 @@
 
 #include "http_parser.h"
 
-double get_time() {
-    struct timeval t;
+void get_time(struct timeval *t) {
     struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec + t.tv_usec*1e-6;
+    gettimeofday(t, &tzp);
+    //return t.tv_sec*1e9 + t.tv_usec*1e3;
 }
 
 struct http_string {
@@ -261,16 +260,17 @@ void bench(char* name, char* path) {
   data.req.headers = NULL;
   data.req.last = NULL;
 
-  int iterations = 100000;
-  double measured[100000];
-  double acc = 0;
+  int iterations = 1000;
+  uint64_t measured[1000];
+  uint64_t acc = 0;
 
   printf("starting iterations:\n");
   //parse(buffer, lSize);
 
+  struct timeval t1, t2;
   for(int i = 0; i < iterations; i++) {
     //printf("i: %d\n", i);
-    double begin = get_time();
+    get_time(&t1);
     ssize_t np = http_parser_execute(&p, &s, buffer, lSize);
     //printf("np: %zu\n", np);
     if (np != lSize) {
@@ -278,12 +278,19 @@ void bench(char* name, char* path) {
       break;
     }
     //parse(buffer, lSize);
-    double end = get_time();
-    measured[i] = end - begin;
-    printf("measured: %d\n", measured);
+    get_time(&t2);
+    uint64_t secs  = t2.tv_sec - t1.tv_sec;
+    uint64_t usecs = t2.tv_usec - t1.tv_usec;
+    //printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
+    //printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
+    // the seconds are not relevant
+    //measured[i] = secs*1e9 + usecs*1e3;
+    measured[i] = usecs;
+    //printf("usecs: %d, measured: %d\n", usecs, measured[i]);
     acc += measured[i];
   }
 
+  printf("acc: %d, iterations: %d\n", acc, iterations);
   double mean = acc / iterations;
   double acc2 = 0;
   for(int t =0; t < iterations; t++) {
@@ -294,7 +301,8 @@ void bench(char* name, char* path) {
   printf("\n\nbench %s:\n", name);
   //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
 
-  printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
+  //printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
+  printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);
   fclose(fp);
   free(buffer);
 }
