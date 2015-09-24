@@ -290,7 +290,7 @@ void bench(char* name, char* path) {
     acc += measured[i];
   }
 
-  printf("acc: %d, iterations: %d\n", acc, iterations);
+  printf("acc: %llu, iterations: %d\n", acc, iterations);
   double mean = acc / iterations;
   double acc2 = 0;
   for(int t =0; t < iterations; t++) {
@@ -309,6 +309,6 @@ void bench(char* name, char* path) {
 
 int main(int argc, char *argv[]) {
   bench("small", "../http-requests.txt");
-  bench("bigger", "../http-requests.txt");
+  bench("bigger", "../bigger.txt");
 }
 
