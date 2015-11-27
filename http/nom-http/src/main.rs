@@ -45,19 +45,21 @@ fn is_version(c: u8) -> bool {
 
 named!(line_ending, alt!(tag!("\n") | tag!("\r\n")));
 
-named!(request_line(&'a [u8]) -> Request<'a>, chain!(
+fn request_line<'a>(input: &'a [u8]) -> IResult<&'a[u8], Request<'a>> {
+  chain!(input,
     method: take_while1!(is_token)     ~
             take_while1!(is_space)     ~
     url:    take_while1!(is_not_space) ~
             take_while1!(is_space)     ~
     version: http_version              ~
     line_ending,
-    
+
     || Request {
         method: method,
         uri:    url,
         version: version,
-    }));
+    })
+}
 
 named!(http_version, chain!(
     tag!("HTTP/")                    ~
@@ -72,22 +74,26 @@ named!(message_header_value, chain!(
     
     || data));
 
-named!(message_header(&'a [u8]) -> Header<'a>, chain!(
+fn message_header<'a>(input: &'a [u8]) -> IResult<&'a[u8], Header<'a>> {
+  chain!(input,
     name:   take_while1!(is_token) ~
             char!(':') ~
     values: many1!(message_header_value),
-    
+
     || Header {
         name: name,
         value: values,
-    }));
+    })
+}
 
-named!(request(&'a [u8]) -> (Request<'a>, Vec<Header<'a>>), chain!(
+fn request<'a>(input: &'a [u8]) -> IResult<&'a[u8], (Request<'a>, Vec<Header<'a>>)> {
+  chain!(input,
     req: request_line           ~
     h:   many1!(message_header) ~
          line_ending,
-    
-    || (req, h)));
+
+    || (req, h))
+}
 
 
 fn parse(data:&[u8]) {
