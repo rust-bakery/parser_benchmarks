@@ -22,10 +22,29 @@ struct Header<'a> {
 }
 
 fn is_token(c: u8) -> bool {
-    // roughly follows the order of ascii chars: "\"(),/:;<=>?@[\\]{} \t"
-    c < 128 && c > 32 && c != b'\t' && c != b'"' && c != b'(' && c != b')' &&
-        c != b',' && c != b'/' && !(c > 57 && c < 65) && !(c > 90 && c < 94) &&
-        c != b'{' && c != b'}'
+    match c {
+        128...255 => false,
+        0...31    => false,
+        b'('      => false,
+        b')'      => false,
+        b'<'      => false,
+        b'>'      => false,
+        b'@'      => false,
+        b','      => false,
+        b';'      => false,
+        b':'      => false,
+        b'\\'     => false,
+        b'"'      => false,
+        b'/'      => false,
+        b'['      => false,
+        b']'      => false,
+        b'?'      => false,
+        b'='      => false,
+        b'{'      => false,
+        b'}'      => false,
+        b' '      => false,
+        _         => true,
+    }
 }
 
 fn not_line_ending(c: u8) -> bool {
