@@ -1,0 +1,7 @@
+[package]
+name = "chomp-http"
+version = "0.1.0"
+authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
+
+[dependencies]
+chomp = { version = "0.1.0", default-features = false }
