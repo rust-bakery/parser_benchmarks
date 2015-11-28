@@ -22,10 +22,29 @@ struct Header<'a> {
 }
 
 fn is_token(c: u8) -> bool {
-    // roughly follows the order of ascii chars: "\"(),/:;<=>?@[\\]{} \t"
-    c < 128 && c > 32 && c != b'\t' && c != b'"' && c != b'(' && c != b')' &&
-        c != b',' && c != b'/' && !(c > 57 && c < 65) && !(c > 90 && c < 94) &&
-        c != b'{' && c != b'}'
+    match c {
+        128...255 => false,
+        0...31    => false,
+        b'('      => false,
+        b')'      => false,
+        b'<'      => false,
+        b'>'      => false,
+        b'@'      => false,
+        b','      => false,
+        b';'      => false,
+        b':'      => false,
+        b'\\'     => false,
+        b'"'      => false,
+        b'/'      => false,
+        b'['      => false,
+        b']'      => false,
+        b'?'      => false,
+        b'='      => false,
+        b'{'      => false,
+        b'}'      => false,
+        b' '      => false,
+        _         => true,
+    }
 }
 
 fn not_line_ending(c: u8) -> bool {
@@ -96,29 +115,31 @@ fn request<'a>(input: &'a [u8]) -> IResult<&'a[u8], (Request<'a>, Vec<Header<'a>
 }
 
 
-fn parse(data:&[u8]) {
+fn parse(data:&[u8]) -> Option<Vec<(Request, Vec<Header>)>> {
   let mut buf = &data[..];
-  let mut i   = 0;
+  let mut v = Vec::new();
   loop {
     match request(buf) {
-      IResult::Done(b, _) => {
+      IResult::Done(b, r) => {
         buf = b;
-
-        i = i + 1;
+        v.push(r);
 
         if b.is_empty() {
-    
+
     //println!("{}", i);
           break;
         }
       },
-      IResult::Error(e) => return /*panic!("{:?}", e)*/,
-      IResult::Incomplete(_) => return /*panic!("Incomplete!")*/,
+      IResult::Error(e) => return None/*panic!("{:?}", e)*/,
+      IResult::Incomplete(_) => return None/*panic!("Incomplete!")*/,
     }
   }
+
+  Some(v)
 }
 
 use test::Bencher;
+
 #[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
