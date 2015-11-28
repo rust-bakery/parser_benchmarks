@@ -45,13 +45,8 @@ fn brand_name(i: Input<u8>) -> U8Result<&str> {
                     })
 }
 
-fn ftyp(i: Input<u8>) -> U8Result<&[u8]> {
-    string(i, b"ftyp")
-}
-
 fn filetype_box(i: Input<u8>) -> U8Result<MP4Box> {
     parse!{i;
-        ftyp();
         let m = brand_name();
         let v = take(4);
         let c = many(brand_name);
@@ -59,14 +54,17 @@ fn filetype_box(i: Input<u8>) -> U8Result<MP4Box> {
 }
 
 fn box_parser_internal(i: Input<u8>) -> U8Result<MP4Box> {
-    // TODO: This is ugly (and slow in verbose_error):
-    or(i, |i| filetype_box(i), |i|
-    or(i, parser!{string(b"moov"); ret MP4Box::Moov}, |i|
-    or(i, parser!{string(b"mdat"); ret MP4Box::Mdat}, |i|
-    or(i, parser!{string(b"free"); ret MP4Box::Free}, |i|
-    or(i, parser!{string(b"skip"); ret MP4Box::Skip}, |i|
-    or(i, parser!{string(b"wide"); ret MP4Box::Wide},
-           |i| i.ret(MP4Box::Unknown)))))))
+    parse!{i;
+        let name = take(4);
+        i -> match name {
+            b"ftyp" => filetype_box(i),
+            b"free" => i.ret(MP4Box::Free),
+            b"mdat" => i.ret(MP4Box::Mdat),
+            b"moov" => i.ret(MP4Box::Moov),
+            b"skip" => i.ret(MP4Box::Skip),
+            _       => i.ret(MP4Box::Unknown),
+        }
+    }
 }
 
 fn box_parser(i: Input<u8>) -> U8Result<MP4Box> {
