@@ -62,7 +62,7 @@ fn is_version(c: u8) -> bool {
     c >= b'0' && c <= b'9' || c == b'.'
 }
 
-named!(line_ending, alt!(tag!("\n") | tag!("\r\n")));
+named!(line_ending, alt!(tag!("\r\n") | tag!("\n")));
 
 fn request_line<'a>(input: &'a [u8]) -> IResult<&'a[u8], Request<'a>> {
   chain!(input,
