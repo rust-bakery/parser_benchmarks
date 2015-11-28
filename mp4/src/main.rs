@@ -5,7 +5,7 @@ extern crate nom;
 
 extern crate test;
 
-use nom::{HexDisplay,IResult,Needed,be_u32};
+use nom::{IResult,Needed,be_u32};
 use nom::IResult::*;
 
 use std::str::from_utf8;
@@ -49,8 +49,8 @@ named!(ftyp, tag!("ftyp"));
 
 fn filetype_box<'a>(input: &'a[u8]) -> IResult<&'a [u8], MP4Box > {
   //println!("ftyp:\n{}", input.to_hex(8));
-  chaining_parser!(input,
-       ftyp       ~
+  chain!(input,
+       ftyp               ~
     m: brand_name         ~
     v: take!(4)           ~
     c: many0!(brand_name) ,
