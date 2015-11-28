@@ -168,6 +168,6 @@ fn main() {
     }
     
     let mut buf = &contents[..];
-    loop { parse(buf) }
+    loop { parse(buf); }
 }
 
