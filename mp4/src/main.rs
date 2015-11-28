@@ -78,7 +78,7 @@ fn box_parser(input:&[u8]) -> IResult<&[u8], MP4Box> {
   flat_map!(input, call!(mp4_box), call!(box_parser_internal))
 }
 
-fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], ()> {
+fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
   //println!("bytes:\n{}", bytes.to_hex(8));
   //println!("bytes length: {}", bytes.len());
   match box_parser(bytes) {
@@ -94,7 +94,7 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], ()> {
       }*/
       //println!("remaining:\n{}", i.to_hex(8));
       //println!("got o");
-      Done(i,())
+      Done(i,o)
     },
     Error(a) => {
       println!("mp4 parsing error: {:?}", a);
@@ -108,7 +108,7 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], ()> {
   }
 }
 
-named!(full_data_interpreter<&[u8],Vec<()> >, many0!(data_interpreter));
+named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(data_interpreter));
 
 use test::Bencher;
 #[bench]
