@@ -110,6 +110,7 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
 
 named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(data_interpreter));
 
+#[cfg(test)]
 use test::Bencher;
 #[bench]
 fn small_test(b: &mut Bencher) {
