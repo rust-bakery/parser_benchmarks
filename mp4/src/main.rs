@@ -49,12 +49,19 @@ named!(ftyp, tag!("ftyp"));
 
 fn filetype_box<'a>(input: &'a[u8]) -> IResult<&'a [u8], MP4Box > {
   //println!("ftyp:\n{}", input.to_hex(8));
-  chain!(input,
-       ftyp               ~
-    m: brand_name         ~
-    v: take!(4)           ~
-    c: many0!(brand_name) ,
-    ||{MP4Box::Ftyp(FileType{major_brand: m, major_brand_version:v, compatible_brands: c})})
+  do_parse!(input,
+       ftyp               >>
+    m: brand_name         >>
+    v: take!(4)           >>
+    c: many0!(brand_name) >>
+    (
+      MP4Box::Ftyp(FileType{
+        major_brand: m,
+        major_brand_version: v,
+        compatible_brands: c
+      })
+    )
+  )
 }
 
 fn unknown_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
