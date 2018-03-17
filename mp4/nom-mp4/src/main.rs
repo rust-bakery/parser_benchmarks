@@ -121,7 +121,7 @@ named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(data_interpreter));
 use test::Bencher;
 #[bench]
 fn small_test(b: &mut Bencher) {
-  let data = include_bytes!("../small.mp4");
+  let data = include_bytes!("../../small.mp4");
   b.iter(||{
     full_data_interpreter(data)
   });
@@ -129,7 +129,7 @@ fn small_test(b: &mut Bencher) {
 
 #[bench]
 fn bigbuckbunny_test(b: &mut Bencher) {
-  let data = include_bytes!("../bigbuckbunny.mp4");
+  let data = include_bytes!("../../bigbuckbunny.mp4");
   b.iter(||{
     full_data_interpreter(data)
   });
@@ -137,7 +137,7 @@ fn bigbuckbunny_test(b: &mut Bencher) {
 
 fn main() {
   println!("Hello, world!");
-  let data = include_bytes!("../small.mp4");
+  let data = include_bytes!("../../small.mp4");
   //println!("data:\n{}", data.to_hex(8));
   loop {
     //let res = full_data_interpreter(data);
