@@ -1,10 +1,10 @@
-#![feature(test)]
-extern crate test;
+#[macro_use]
+extern crate bencher;
 
 #[macro_use]
 extern crate chomp;
 
-use test::Bencher;
+use bencher::{black_box, Bencher};
 
 use chomp::{or, token, take_while1, take_till, string, many, many1, Input, U8Result};
 use chomp::buffer::{Stream, IntoStream};
@@ -119,18 +119,36 @@ fn request(i: Input<u8>) -> U8Result<(Request, Vec<Header>)> {
     }
 }
 
-#[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
-  b.iter(||{
-    data.into_stream().parse::<_, Vec<_>, _>(parser!{many(request)})
-  });
+  parse(b, data)
 }
 
-#[bench]
 fn bigger_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigger.txt");
-  b.iter(||{
-    data.into_stream().parse::<_, Vec<_>, _>(parser!{many(request)})
-  });
+  parse(b, data)
 }
+
+fn one_test(b: &mut Bencher) {
+  let data = &b"GET / HTTP/1.1
+Host: www.reddit.com
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101 Firefox/15.0.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+
+"[..];
+  parse(b, data)
+}
+
+fn parse(b: &mut Bencher, buffer: &[u8]) {
+    b.iter(|| {
+        let mut buf = black_box(buffer);
+
+        buf.into_stream().parse::<_, Vec<_>, _>(parser!{many(request)})
+    });
+}
+
+benchmark_group!(http, one_test, small_test, bigger_test);
+benchmark_main!(http);

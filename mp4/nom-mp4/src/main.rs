@@ -1,10 +1,10 @@
-#![feature(test)]
+#[macro_use]
+extern crate bencher;
 
 #[macro_use]
 extern crate nom;
 
-extern crate test;
-
+use bencher::{Bencher,black_box};
 use nom::{IResult,Needed,be_u32};
 use nom::IResult::*;
 
@@ -117,24 +117,26 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
 
 named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(data_interpreter));
 
-#[cfg(test)]
-use test::Bencher;
-#[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../small.mp4");
   b.iter(||{
-    full_data_interpreter(data)
+    let buf = black_box(data);
+    full_data_interpreter(buf).unwrap()
   });
 }
 
-#[bench]
 fn bigbuckbunny_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigbuckbunny.mp4");
   b.iter(||{
-    full_data_interpreter(data)
+    let buf = black_box(data);
+    full_data_interpreter(buf).unwrap()
   });
 }
 
+benchmark_group!(mp4, small_test, bigbuckbunny_test);
+benchmark_main!(mp4);
+
+/*
 fn main() {
   println!("Hello, world!");
   let data = include_bytes!("../../small.mp4");
@@ -145,3 +147,5 @@ fn main() {
     data_interpreter(data);
   }
 }
+*/
+

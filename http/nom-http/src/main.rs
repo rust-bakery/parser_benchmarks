@@ -1,8 +1,10 @@
-#![feature(test)]
-extern crate test;
+#[macro_use]
+extern crate bencher;
 
 #[macro_use]
 extern crate nom;
+
+use bencher::{black_box, Bencher};
 
 use nom::IResult;
 use std::env;
@@ -111,49 +113,16 @@ fn request<'a>(input: &'a [u8]) -> IResult<&'a[u8], (Request<'a>, Vec<Header<'a>
   )
 }
 
-
-fn parse(data:&[u8]) -> Option<Vec<(Request, Vec<Header>)>> {
-  let mut buf = &data[..];
-  let mut v = Vec::new();
-  loop {
-    match request(buf) {
-      //IResult::Done(b, r) => {
-      Ok((b, r)) => {
-        buf = b;
-        v.push(r);
-
-        if b.is_empty() {
-
-    //println!("{}", i);
-          break;
-        }
-      },
-      _ => return None
-    }
-  }
-
-  Some(v)
-}
-
-use test::Bencher;
-
-#[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
-  b.iter(||{
-    parse(data)
-  });
+  parse(b, data)
 }
 
-#[bench]
 fn bigger_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigger.txt");
-  b.iter(||{
-    parse(data)
-  });
+  parse(b, data)
 }
 
-#[bench]
 fn one_test(b: &mut Bencher) {
   let data = &b"GET / HTTP/1.1
 Host: www.reddit.com
@@ -161,11 +130,37 @@ User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 Accept-Language: en-us,en;q=0.5
 Accept-Encoding: gzip, deflate
-Connection: keep-alive"[..];
-  b.iter(||{
-    parse(data)
-  });
+Connection: keep-alive
+
+"[..];
+  parse(b, data)
 }
+
+fn parse(b: &mut Bencher, buffer: &[u8]) {
+    b.iter(|| {
+        let mut buf = black_box(buffer);
+        let mut v = Vec::new();
+
+        while !buf.is_empty() {
+            // Needed for inferrence for many(message_header)
+            match request(buf) {
+                Ok((i, o)) => {
+                    v.push(o);
+
+                    buf = i
+                }
+                Err(err) => panic!("got err: {:?}", err),
+            }
+        }
+
+        v
+    });
+}
+
+benchmark_group!(http, one_test, small_test, bigger_test);
+benchmark_main!(http);
+
+/*
 fn main() {
     let mut contents: Vec<u8> = Vec::new();
 
@@ -176,8 +171,10 @@ fn main() {
 
         let _ = file.read_to_end(&mut contents).unwrap();
     }
-    
+
     let mut buf = &contents[..];
     loop { parse(buf); }
 }
+*/
+
 

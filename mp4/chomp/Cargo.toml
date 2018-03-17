@@ -5,3 +5,4 @@ authors = ["Martin Wernstål <m4rw3r@gmail.com>"]
 
 [dependencies]
 chomp = { version = "0.1.1", default-features = false }
+bencher = "0.1"

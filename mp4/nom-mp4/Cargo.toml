@@ -6,3 +6,4 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
 nom = {git = "https://github.com/Geal/nom"}
+bencher = "0.1"

@@ -5,3 +5,4 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
 combine = "3.0.0-beta.1"
+bencher = "0.1"

@@ -1,11 +1,11 @@
-#![feature(test)]
-extern crate test;
-
+#[macro_use]
+extern crate bencher;
 #[macro_use]
 extern crate combine;
 
-use std::{env, fmt};
-use std::fs::File;
+use bencher::{black_box, Bencher};
+
+use std::fmt;
 
 use combine::{many, token, ParseError, Parser, RangeStream, many1};
 use combine::range::{range, take_while1};
@@ -106,93 +106,16 @@ where
     request.parse(input)
 }
 
-/*
-static REQUESTS: &'static [u8] = include_bytes!("http-requests.txt");
-
-fn http_requests_small(b: &mut Bencher) {
-    http_requests_bench(b, easy::Stream(REQUESTS))
-}
-
-fn http_requests_large(b: &mut Bencher) {
-    use std::iter;
-
-    let mut buffer = Vec::with_capacity(REQUESTS.len() * 5);
-    for buf in iter::repeat(REQUESTS).take(5) {
-        buffer.extend_from_slice(buf);
-    }
-    http_requests_bench(b, easy::Stream(&buffer[..]))
-}
-
-fn http_requests_large_cheap_error(b: &mut Bencher) {
-    use std::iter;
-
-    let mut buffer = Vec::with_capacity(REQUESTS.len() * 5);
-    for buf in iter::repeat(REQUESTS).take(5) {
-        buffer.extend_from_slice(buf);
-    }
-    http_requests_bench(b, &buffer[..])
-}
-
-fn http_requests_bench<'a, I>(b: &mut Bencher, buffer: I)
-where
-    I: RangeStream<Item = u8, Range = &'a [u8]> + Clone,
-    I::Error: ParseError<I::Item, I::Range, I::Position> + fmt::Debug,
-{
-    b.iter(|| {
-        let mut buf = black_box(buffer.clone());
-
-        while buf.clone().uncons().is_ok() {
-            match parse_http_request(buf) {
-                Ok(((_, _), b)) => {
-                    buf = b;
-                }
-                Err(err) => panic!("{:?}", err),
-            }
-        }
-    });
-}
-*/
-
-fn parse(data: &[u8]) -> Option<Vec<(Request, Vec<Header>)>> {
-  let mut buf = &data[..];
-  let mut v = Vec::new();
-
-  loop {
-    match parse_http_request(buf) {
-      Ok((r, b)) => {
-        buf = b;
-        v.push(r);
-
-        if b.is_empty() {
-          break;
-        }
-      }
-      Err(err) => return None
-    }
-  }
-
-  Some(v)
-}
-
-use test::Bencher;
-
-#[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
-  b.iter(||{
-    parse(data)
-  });
+  parse(b, data)
 }
 
-#[bench]
 fn bigger_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigger.txt");
-  b.iter(||{
-    parse(data)
-  });
+  parse(b, data)
 }
 
-#[bench]
 fn one_test(b: &mut Bencher) {
   let data = &b"GET / HTTP/1.1
 Host: www.reddit.com
@@ -200,24 +123,33 @@ User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
 Accept-Language: en-us,en;q=0.5
 Accept-Encoding: gzip, deflate
-Connection: keep-alive"[..];
-  b.iter(||{
-    parse(data)
-  });
+Connection: keep-alive
+
+"[..];
+  parse(b, data)
 }
 
-fn main() {
-    let mut contents: Vec<u8> = Vec::new();
+fn parse(b: &mut Bencher, buffer: &[u8]) {
+    b.iter(|| {
+        let mut buf = black_box(buffer);
+        let mut v = Vec::new();
 
-    {
-        use std::io::Read;
+        while !buf.is_empty() {
+            // Needed for inferrence for many(message_header)
+            match parse_http_request(buf) {
+                Ok((o, i)) => {
+                    v.push(o);
 
-        let mut file = File::open(env::args().nth(1).expect("File to read")).ok().expect("Failed to open file");
+                    buf = i
+                }
+                Err(err) => panic!("got err: {:?}", err),
+            }
+        }
 
-        let _ = file.read_to_end(&mut contents).unwrap();
-    }
-
-    let mut buf = &contents[..];
-    loop { parse(buf); }
+        v
+    });
 }
+
+benchmark_group!(http, one_test, small_test, bigger_test);
+benchmark_main!(http);
 

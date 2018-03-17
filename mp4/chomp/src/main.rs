@@ -1,9 +1,10 @@
-#![feature(test)]
+#[macro_use]
+extern crate bencher;
 
 #[macro_use]
 extern crate chomp;
 
-extern crate test;
+use bencher::{black_box, Bencher};
 
 use chomp::*;
 use chomp::buffer::{IntoStream, Stream};
@@ -75,24 +76,26 @@ fn full_data_interpreter(i: Input<u8>) -> U8Result<Vec<MP4Box>> {
     many(i, box_parser)
 }
 
-use test::Bencher;
-
-#[bench]
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../small.mp4");
   b.iter(||{
-    data.into_stream().parse(full_data_interpreter)
+    let buf = black_box(data);
+    buf.into_stream().parse(full_data_interpreter)
   });
 }
 
-#[bench]
 fn bigbuckbunny_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigbuckbunny.mp4");
   b.iter(||{
-    data.into_stream().parse(full_data_interpreter)
+    let buf = black_box(data);
+    buf.into_stream().parse(full_data_interpreter)
   });
 }
 
+benchmark_group!(mp4, small_test, bigbuckbunny_test);
+benchmark_main!(mp4);
+
+/*
 fn main() {
   println!("Hello, world!");
   let data = include_bytes!("../../small.mp4");
@@ -103,3 +106,4 @@ fn main() {
     data.into_stream().parse(box_parser).unwrap();
   }
 }
+*/
