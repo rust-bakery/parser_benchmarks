@@ -1,0 +1,8 @@
+
+running 3 tests
+test bigger_test ... bench:     490,499 ns/iter (+/- 111,319)
+test one_test    ... bench:       1,287 ns/iter (+/- 228)
+test small_test  ... bench:      95,238 ns/iter (+/- 14,908)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 3 measured; 0 filtered out
+
