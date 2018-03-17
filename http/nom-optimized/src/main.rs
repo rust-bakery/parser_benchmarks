@@ -14,7 +14,7 @@ use std::fs::File;
 struct Request<'a> {
     method:  &'a [u8],
     uri:     &'a [u8],
-    version: &'a [u8],
+    version: u8,
 }
 
 #[derive(Debug)]
@@ -82,9 +82,9 @@ fn request_line<'a>(input: &'a [u8]) -> IResult<&'a[u8], Request<'a>> {
   )
 }
 
-named!(http_version, preceded!(
-    tag!("HTTP/"),
-    take_while1!(is_version)
+named!(http_version<u8>, preceded!(
+    tag!("HTTP/1."),
+    map!(one_of!("01"), |n| if n == '0' { 0 } else { 1 })
 ));
 
 named!(message_header_value, delimited!(
