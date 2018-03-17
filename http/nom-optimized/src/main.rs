@@ -24,29 +24,37 @@ struct Header<'a> {
 }
 
 fn is_token(c: u8) -> bool {
-    match c {
-        128...255 => false,
-        0...31    => false,
-        b'('      => false,
-        b')'      => false,
-        b'<'      => false,
-        b'>'      => false,
-        b'@'      => false,
-        b','      => false,
-        b';'      => false,
-        b':'      => false,
-        b'\\'     => false,
-        b'"'      => false,
-        b'/'      => false,
-        b'['      => false,
-        b']'      => false,
-        b'?'      => false,
-        b'='      => false,
-        b'{'      => false,
-        b'}'      => false,
-        b' '      => false,
-        _         => true,
-    }
+  c > 0x20 && c < 0x7F
+}
+
+macro_rules! byte_map {
+    ($($flag:expr,)*) => ([
+        $($flag != 0,)*
+    ])
+}
+
+static HEADER_NAME_MAP: [bool; 256] = byte_map![
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+];
+
+#[inline]
+fn is_header_name_token(b: u8) -> bool {
+    HEADER_NAME_MAP[b as usize]
 }
 
 fn not_line_ending(c: u8) -> bool {
@@ -95,7 +103,7 @@ named!(message_header_value, delimited!(
 
 fn message_header<'a>(input: &'a [u8]) -> IResult<&'a[u8], Header<'a>> {
   do_parse!(input,
-    name:   take_while1!(is_token)       >>
+    name:   take_while1!(is_header_name_token)       >>
             char!(':')                   >>
     values: many1!(message_header_value) >>
 
