@@ -121,11 +121,13 @@ fn request(i: Input<u8>) -> U8Result<(Request, Vec<Header>)> {
 
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 
 fn bigger_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigger.txt");
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 
@@ -139,6 +141,7 @@ Accept-Encoding: gzip, deflate
 Connection: keep-alive
 
 "[..];
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 

@@ -115,11 +115,13 @@ fn request<'a>(input: &'a [u8]) -> IResult<&'a[u8], (Request<'a>, Vec<Header<'a>
 
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../http-requests.txt");
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 
 fn bigger_test(b: &mut Bencher) {
   let data = include_bytes!("../../bigger.txt");
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 
@@ -133,6 +135,7 @@ Accept-Encoding: gzip, deflate
 Connection: keep-alive
 
 "[..];
+  b.bytes = data.len() as u64;
   parse(b, data)
 }
 
@@ -142,7 +145,6 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
         let mut v = Vec::new();
 
         while !buf.is_empty() {
-            // Needed for inferrence for many(message_header)
             match request(buf) {
                 Ok((i, o)) => {
                     v.push(o);
