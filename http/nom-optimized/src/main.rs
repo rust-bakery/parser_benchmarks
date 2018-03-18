@@ -99,6 +99,112 @@ fn is_version(c: u8) -> bool {
 
 named!(line_ending, alt!(tag!("\r\n") | tag!("\n")));
 
+use std::slice::from_raw_parts;
+fn split(input: &[u8], index: usize) -> (&[u8], &[u8]) {
+  let len = input.len();
+  let ptr = input.as_ptr();
+  unsafe {
+  (
+    from_raw_parts(ptr.offset(index as isize), len - index),
+    from_raw_parts(ptr, index)
+  )
+  }
+}
+
+#[macro_export]
+macro_rules! take_while1_unrolled (
+  ($input:expr, $predicate: expr) => (
+    {
+      use nom::Err;
+      use nom::Context;
+      use nom::Needed;
+      use nom::ErrorKind;
+      use nom::InputTakeAtPosition;
+
+      let input = $input;
+
+      let mut i = 0usize;
+      let len = input.len();
+      let mut found = false;
+
+      loop {
+        if len - i < 8 {
+          break;
+        }
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+      }
+
+      if !found {
+        loop {
+          if !$predicate(unsafe { *input.get_unchecked(i) }) {
+            break;
+          }
+          i = i+1;
+          if i == len {
+            break;
+          }
+        }
+      }
+
+      if i == 0 {
+        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
+      } else if i == len {
+        Err(Err::Incomplete(Needed::Unknown))
+      } else {
+        let (prefix, suffix) = input.split_at(i);
+        Ok((suffix, prefix))
+      }
+    }
+  );
+);
+
 fn request_line<'a>(input: &'a [u8]) -> IResult<&'a[u8], Request<'a>> {
   do_parse!(input,
     method: take_while1!(is_token)     >>
@@ -122,7 +228,8 @@ named!(http_version<u8>, preceded!(
 
 named!(message_header_value, delimited!(
     take_while1!(is_horizontal_space),
-    take_while1!(is_header_value_token),
+    //take_while1!(is_header_value_token),
+    take_while1_unrolled!(is_header_value_token),
     line_ending
 ));
 
