@@ -20,7 +20,7 @@ struct Request<'a> {
 #[derive(Debug)]
 struct Header<'a> {
     name:  &'a [u8],
-    value: Vec<&'a [u8]>,
+    value: &'a [u8],
 }
 
 fn is_token(c: u8) -> bool {
@@ -237,11 +237,11 @@ fn message_header<'a>(input: &'a [u8]) -> IResult<&'a[u8], Header<'a>> {
   do_parse!(input,
     name:   take_while1!(is_header_name_token)       >>
             char!(':')                   >>
-    values: many1!(message_header_value) >>
+    value: message_header_value >>
 
     ( Header {
         name: name,
-        value: values,
+        value: value,
     } )
   )
 }
