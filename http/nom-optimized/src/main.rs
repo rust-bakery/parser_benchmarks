@@ -193,19 +193,19 @@ macro_rules! take_while1_unrolled (
   );
 );
 
-fn request_line<'a>(input: &'a [u8]) -> IResult<&'a[u8], Request<'a>> {
+fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
   do_parse!(input,
     method: take_while1!(is_token)     >>
             take_while1!(is_space)     >>
-    url:    take_while1!(is_not_space) >>
+    uri:    take_while1!(is_not_space) >>
             take_while1!(is_space)     >>
     version: http_version              >>
     line_ending                        >>
-    ( Request {
-        method: method,
-        uri:    url,
-        version: version,
-    } )
+    ({
+      req.method  = method;
+      req.uri     = uri;
+      req.version = version;
+    })
   )
 }
 
@@ -250,9 +250,9 @@ fn headers_iter<'a,'h>(input: &'a [u8], headers: &'h mut [Header<'a>]) -> IResul
   Ok((input, ()))
 }
 
-fn request<'a,'h>(input: &'a [u8], headers: &'h mut [Header<'a>]) -> IResult<&'a[u8], Request<'a>> {
+fn request<'a,'r, 'h>(input: &'a [u8], req: &'r mut Request<'a>, headers: &'h mut [Header<'a>]) -> IResult<&'a[u8], ()> {
   terminated!(input,
-    request_line,
+    apply!(request_line, req),
     pair!(
       apply!(headers_iter, headers),
       line_ending
@@ -316,20 +316,30 @@ Keep-Alive: 115\r\n\
 Connection: keep-alive\r\n\
 Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.x; __utmz=xxxxxxxxx.xxxxxxxxxx.x.x.utmccn=(referral)|utmcsr=reader.livedoor.com|utmcct=/reader/|utmcmd=referral\r\n\r\n"[..];
 
+  let mut req = Request {
+    method: &[],
+    uri:    &[],
+    version: 0
+  };
   let mut headers = [Header{ name: &[], value: &[] }; 16];
-  let res = request(data, &mut headers);
-  println!("res:\n{:?}\nheaders:\n{:?}", res, headers);
+  let res = request(data, &mut req, &mut headers);
+  println!("res:{:?}\nreq:\n{:?}\nheaders:\n{:?}", res, req, headers);
   res.unwrap();
 }
 
 fn parse(b: &mut Bencher, buffer: &[u8]) {
+    let mut req = Request {
+      method: &[],
+      uri:    &[],
+      version: 0
+    };
     let mut headers = [Header{ name: &[], value: &[] }; 16];
     b.iter(|| {
         let mut buf = black_box(buffer);
         let mut v = Vec::new();
 
         while !buf.is_empty() {
-            match request(buf, &mut headers) {
+            match request(buf, &mut req, &mut headers) {
                 Ok((i, o)) => {
                     v.push(o);
 
