@@ -196,9 +196,9 @@ macro_rules! take_while1_unrolled (
 fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
   do_parse!(input,
     method: take_while1!(is_token)     >>
-            take_while1!(is_space)     >>
-    uri:    take_while1!(is_not_space) >>
-            take_while1!(is_space)     >>
+            char!(' ') >>
+    uri:    take_while1_unrolled!(is_token) >>
+            char!(' ') >>
     version: http_version              >>
     line_ending                        >>
     ({
