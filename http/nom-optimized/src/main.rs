@@ -14,6 +14,99 @@ use nom::HexDisplay;
 use stdsimd::vendor::*;
 
 #[macro_export]
+macro_rules! take_while1_unrolled (
+  ($input:expr, $predicate: expr) => (
+    {
+      use nom::Err;
+      use nom::Context;
+      use nom::Needed;
+      use nom::ErrorKind;
+
+      let input = $input;
+
+      let mut i = 0usize;
+      let len = input.len();
+      let mut found = false;
+
+      loop {
+        if len - i < 8 {
+          break;
+        }
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+
+        if !$predicate(unsafe { *input.get_unchecked(i) }) {
+          found = true;
+          break;
+        }
+        i = i+1;
+      }
+
+      if !found {
+        loop {
+          if !$predicate(unsafe { *input.get_unchecked(i) }) {
+            break;
+          }
+          i = i+1;
+          if i == len {
+            break;
+          }
+        }
+      }
+
+      if i == 0 {
+        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
+      } else if i == len {
+        Err(Err::Incomplete(Needed::Unknown))
+      } else {
+        let (prefix, suffix) = input.split_at(i);
+        Ok((suffix, prefix))
+      }
+    }
+  );
+);
+
+#[macro_export]
 macro_rules! take_while1_simd (
   ($input:expr, $predicate:expr, $ranges:expr) => ({
       use nom::Err;
@@ -185,99 +278,6 @@ fn is_version(c: u8) -> bool {
 }
 
 named!(line_ending, alt!(tag!("\r\n") | tag!("\n")));
-
-#[macro_export]
-macro_rules! take_while1_unrolled (
-  ($input:expr, $predicate: expr) => (
-    {
-      use nom::Err;
-      use nom::Context;
-      use nom::Needed;
-      use nom::ErrorKind;
-
-      let input = $input;
-
-      let mut i = 0usize;
-      let len = input.len();
-      let mut found = false;
-
-      loop {
-        if len - i < 8 {
-          break;
-        }
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-
-        if !$predicate(unsafe { *input.get_unchecked(i) }) {
-          found = true;
-          break;
-        }
-        i = i+1;
-      }
-
-      if !found {
-        loop {
-          if !$predicate(unsafe { *input.get_unchecked(i) }) {
-            break;
-          }
-          i = i+1;
-          if i == len {
-            break;
-          }
-        }
-      }
-
-      if i == 0 {
-        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
-      } else if i == len {
-        Err(Err::Incomplete(Needed::Unknown))
-      } else {
-        let (prefix, suffix) = input.split_at(i);
-        Ok((suffix, prefix))
-      }
-    }
-  );
-);
 
 fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
   //let range = &[0, 32, 127, 127];
