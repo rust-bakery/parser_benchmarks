@@ -1,0 +1,9 @@
+[package]
+name = "pest-json"
+version = "0.1.0"
+authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
+
+[dependencies]
+pest = "^1.0.0"
+pest_grammars = "^1.0.0"
+bencher = "0.1"
