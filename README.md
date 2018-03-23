@@ -4,7 +4,6 @@ This repository holds benchmarks comparing various parser libraries:
 
 - [nom](https://github.com/Geal/nom), a parser combinators library written in Rust
 - [combine](https://github.com/Marwes/combine), a parser combinators library written in Rust
-- [chomp](https://github.com/m4rw3r/chomp), a parser combinators library written in Rust
 - [pest](https://github.com/pest-parser/pest) a PEG parser written in Rust
 - [hammer](https://github.com/UpstandingHackers/hammer) a parsers combinators library written in C
 - [attoparsec](https://hackage.haskell.org/package/attoparsec), a parsers combinators library written in Haskell
