@@ -1,0 +1,8 @@
+[package]
+name = "httparse-test"
+version = "0.1.0"
+authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
+
+[dependencies]
+httparse = "^1.2.4"
+bencher = "^0.1"

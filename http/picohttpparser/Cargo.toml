@@ -1,0 +1,8 @@
+[package]
+name = "picohttpparser"
+version = "0.1.0"
+authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
+
+[dependencies]
+pico-sys = "^0.0.1"
+bencher = "^0.1"
