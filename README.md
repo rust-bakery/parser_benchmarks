@@ -11,6 +11,8 @@ This repository holds benchmarks comparing various parser libraries:
 Along with existing libraries for comparison:
 
 - [Joyent's HTTP parser for NodeJS](https://github.com/nodejs/http-parser), written in C
+- [picohttpparser](https://github.com/h2o/picohttpparser), written in C
+- [httparse](https://github.com/seanmonstar/httparse), written in Rust
 
 Right now, there are 3 examples:
 - HTTP request header parsing
