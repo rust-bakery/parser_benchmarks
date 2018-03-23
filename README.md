@@ -13,8 +13,9 @@ Along with existing libraries for comparison:
 
 - [Joyent's HTTP parser for NodeJS](https://github.com/nodejs/http-parser), written in C
 
-Right now, there are two examples:
+Right now, there are 3 examples:
 - HTTP request header parsing
+- JSON parsing
 - MP4 filetype atom parsing
 
 The goal of this repository is to gather various parsing solutions and compare them

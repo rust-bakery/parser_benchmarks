@@ -6,9 +6,9 @@ way of their libraries. More optimized versions might exist (and
 would make good additions to this repository), but they might
 be harder to follow.
 
-# Current results
+## Results
 
-on a MacBook Pro (late 2013), CPU 2,3 GHz Intel Core i7
+The benchmarks were run on a late 2013 Macbook Pro, quad core 2,3 GHz Intel Core i7.
 
 |         | basic                             | canada.json |apache_builds.json | data.json |
 | ------- | --------------------------------- | ----------- | ----------------- | --------- |
