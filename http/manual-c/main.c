@@ -25,17 +25,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
 
 #include "http_parser.h"
-
-void get_time(struct timeval *t) {
-    struct timezone tzp;
-    gettimeofday(t, &tzp);
-    //return t.tv_sec*1e9 + t.tv_usec*1e3;
-}
 
 struct http_string {
     size_t len;
@@ -73,7 +66,7 @@ static void *xmalloc(size_t size)
 
 static struct http_string *xstrdup(const char *src, size_t len, size_t extra)
 {
-    struct http_string *dst = xmalloc(sizeof(*dst) + len + extra);
+    struct http_string *dst = (struct http_string*) xmalloc(sizeof(*dst) + len + extra);
     memcpy(dst->value, src, len);
     dst->len = len;
     return dst;
@@ -97,7 +90,7 @@ static void xstrcat(struct http_string **dst, const char *src, size_t len)
 
 static int begin(http_parser *p)
 {
-    struct data *data = p->data;
+    struct data *data = (struct data*) p->data;
 
     data->count++;
 
@@ -218,7 +211,9 @@ static void parse(char * buf, long nread)
     //printf("%ld\n", (unsigned long) data.count);
 }
 
-void bench(char* name, char* path) {
+#include <nonius/benchmark.h++>
+
+static inline void bench(char const* name, char const* path, nonius::chronometer& cm) {
   uint8_t input[1024];
   size_t inputsize;
 
@@ -227,7 +222,7 @@ void bench(char* name, char* path) {
   long lSize = ftell( fp );
   rewind( fp );
 
-  const uint8_t* buffer = calloc( 1, lSize+1 );
+  char* buffer = (char*) calloc( 1, lSize+1 );
   if( !buffer ) fclose(fp),fputs("memory alloc fails",stderr),exit(1);
 
   if( 1!=fread((void*)buffer , lSize, 1 , fp) )
@@ -252,67 +247,39 @@ void bench(char* name, char* path) {
 
   p.data = &data;
 
-
   data.count = 0;
   data.req.method = NULL;
   data.req.uri = NULL;
   data.req.headers = NULL;
   data.req.last = NULL;
 
-  int iterations = 1000;
-  uint64_t measured[1000];
-  uint64_t acc = 0;
-
-  printf("starting iterations:\n");
   //parse(buffer, lSize);
+  cm.measure([&] (size_t) 
+    {
+        ssize_t np = 0;
+        do {
+            //printf("passing:\n%s", buffer + np);
+            http_parser_init(&p, HTTP_REQUEST);
+            np += http_parser_execute(&p, &s, buffer + np, lSize - np);
+            //printf("np: %zu\n", np);
+        } while (np < lSize);
+        if (np != lSize) {
+            fprintf(stderr, "parse failed\n");
+            /*break;*/
+        }
+        //parse(buffer, lSize);
+    });
 
-  struct timeval t1, t2;
-  for(int i = 0; i < iterations; i++) {
-    //printf("i: %d\n", i);
-    get_time(&t1);
-    ssize_t np = 0;
-    do {
-      //printf("passing:\n%s", buffer + np);
-      http_parser_init(&p, HTTP_REQUEST);
-      np += http_parser_execute(&p, &s, buffer + np, lSize - np);
-      //printf("np: %zu\n", np);
-    } while (np < lSize);
-    if (np != lSize) {
-      fprintf(stderr, "parse failed\n");
-      break;
-    }
-    //parse(buffer, lSize);
-    get_time(&t2);
-    uint64_t secs  = t2.tv_sec - t1.tv_sec;
-    uint64_t usecs = t2.tv_usec - t1.tv_usec;
-    //printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
-    //printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
-    // the seconds are not relevant
-    //measured[i] = secs*1e9 + usecs*1e3;
-    measured[i] = usecs;
-    //printf("usecs: %d, measured: %d\n", usecs, measured[i]);
-    acc += measured[i];
-  }
-
-  printf("acc: %llu, iterations: %d\n", acc, iterations);
-  double mean = acc / iterations;
-  double acc2 = 0;
-  for(int t =0; t < iterations; t++) {
-    acc2 = pow(fabs(measured[t] - mean), 2);
-  }
-
-  double variance = acc2 / iterations;
-  printf("\n\nbench %s:\n", name);
-  //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
-
-  //printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
-  printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);
+  /*printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);*/
   fclose(fp);
   free(buffer);
 }
 
-int main(int argc, char *argv[]) {
-  bench("small", "../http-requests.txt");
-  bench("bigger", "../bigger.txt");
-}
+NONIUS_BENCHMARK("small", [](nonius::chronometer cm) {
+        bench("small", "../http-requests.txt", cm);
+})
+NONIUS_BENCHMARK("bigger", [](nonius::chronometer cm) {
+        bench("bigger", "../bigger.txt", cm);
+})
 
+#include <nonius/main.h++>
