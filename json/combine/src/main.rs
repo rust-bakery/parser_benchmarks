@@ -141,7 +141,7 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let field = (json_string(), lex(char(':')), json_value()).map(|t| (t.0, t.2));
+    let field = (json_string(), lex(char(':')), json_value_()).map(|t| (t.0, t.2));
     let fields = sep_by(field, lex(char(',')));
     between(lex(char('{')), lex(char('}')), fields)
         .map(Value::Object)
@@ -154,7 +154,7 @@ where
     I: Stream<Item = char>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    json_value_()
+    spaces().with(json_value_())
 }
 
 // We need to use `parser!` to break the recursive use of `value` to prevent the returned parser
@@ -167,7 +167,7 @@ parser!{
         let array = between(
             lex(char('[')),
             lex(char(']')),
-            sep_by(json_value(), lex(char(','))),
+            sep_by(json_value_(), lex(char(','))),
         ).map(Value::Array);
 
         choice((
@@ -226,62 +226,60 @@ fn json_test() {
 fn parse(b: &mut Bencher, buffer: &str) {
     let mut parser = json_value();
     b.iter(|| {
-      let mut buf = black_box(buffer);
+        let mut buf = black_box(buffer);
 
-      let result = parser.parse(buf).unwrap();
-      black_box(result)
+        let result = parser.easy_parse(State::new(buf)).unwrap();
+        black_box(result)
     });
 }
 
 fn basic(b: &mut Bencher) {
-  let data = "  { \"a\"\t: 42,
+    let data = "  { \"a\"\t: 42,
   \"b\": [ \"x\", \"y\", 12 ] ,
   \"c\": { \"hello\" : \"world\"
   }
   }  ";
 
-  b.bytes = data.len() as u64;
-  parse(b, data)
+    b.bytes = data.len() as u64;
+    parse(b, data)
 }
 
 fn data(b: &mut Bencher) {
-  let data = include_str!("../../data.json");
-  b.bytes = data.len() as u64;
-  parse(b, data)
+    let data = include_str!("../../data.json");
+    b.bytes = data.len() as u64;
+    parse(b, data)
 }
 
 fn canada(b: &mut Bencher) {
-  let data = include_str!("../../canada.json");
-  b.bytes = data.len() as u64;
-  parse(b, data)
+    let data = include_str!("../../canada.json");
+    b.bytes = data.len() as u64;
+    parse(b, data)
 }
 
 #[test]
 fn test() {
-  let data = "  { \"a\"\t: 42,
+    let data = "  { \"a\"\t: 42,
   \"b\": [ \"x\", \"y\", 12 ] ,
   \"c\": { \"hello\" : \"world\"
   }
   }  ";
-  //let data = include_str!("../../test.json");
+    //let data = include_str!("../../test.json");
 
-  let mut parser = json_value();
-  println!("test: {:?}", parser.parse(State::new(data)).unwrap());
-  panic!()
+    let mut parser = json_value();
+    println!("test: {:?}", parser.parse(State::new(data)).unwrap());
+    panic!()
 }
 
 fn apache(b: &mut Bencher) {
-  let data = include_str!("../../apache_builds.json");
-  b.bytes = data.len() as u64;
-  parse(b, data)
+    let data = include_str!("../../apache_builds.json");
+    b.bytes = data.len() as u64;
+    parse(b, data)
 }
-
 
 //deactivating the "basic" benchmark because the parser fails on this one
 //benchmark_group!(json, basic, data, apache, canada);
-benchmark_group!(json, data, apache, canada);
+benchmark_group!(json, basic, data, apache, canada);
 benchmark_main!(json);
-
 
 /*
 fn main() {
