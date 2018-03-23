@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-combine = "3.0.0-beta.1"
+combine = "3.0.0"
 bencher = "0.1"

@@ -5,11 +5,8 @@ extern crate combine;
 
 use bencher::{black_box, Bencher};
 
-use std::fmt;
-
 use combine::{many, token, ParseError, Parser, RangeStream, many1};
 use combine::range::{range, take_while1};
-use combine::stream::easy;
 
 #[derive(Debug)]
 struct Request<'a> {
