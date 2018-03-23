@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-#nom = { git = "https://github.com/geal/nom" }
-nom = {path = "/Users/geal/dev/rust/projects/nom" }
+nom = { git = "https://github.com/geal/nom" }
+#nom = {path = "/Users/geal/dev/rust/projects/nom" }
 bencher = "0.1"
