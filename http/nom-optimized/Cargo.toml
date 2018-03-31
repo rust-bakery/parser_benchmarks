@@ -3,10 +3,17 @@ name = "nom-http"
 version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
+[features]
+simd = ["stdsimd"]
+default = ["simd"]
+
 [dependencies]
 nom = {git = "https://github.com/Geal/nom" }
 bencher = "0.1"
-stdsimd = "0.0.4"
+
+[dependencies.stdsimd]
+version = "0.0.4"
+optional = true
 
 [profile.release]
 lto = "fat"

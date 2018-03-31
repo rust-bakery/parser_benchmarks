@@ -1,8 +1,6 @@
 use nom::IResult;
 use nom::HexDisplay;
 
-use stdsimd::vendor::*;
-
 #[macro_export]
 macro_rules! take_while1_unrolled (
   ($input:expr, $predicate: expr) => (
@@ -99,6 +97,9 @@ macro_rules! take_while1_unrolled (
 #[macro_export]
 macro_rules! take_while1_simd (
   ($input:expr, $predicate:expr, $ranges:expr) => ({
+      #[cfg(feature = "simd")]
+      use stdsimd::vendor::*;
+
       use nom::Err;
       use nom::Context;
       use nom::Needed;

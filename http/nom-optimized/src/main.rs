@@ -4,14 +4,13 @@ extern crate bencher;
 #[macro_use]
 extern crate nom;
 
+#[cfg(feature = "simd")]
 extern crate stdsimd;
 
 use bencher::{black_box, Bencher};
 
 use nom::IResult;
 use nom::HexDisplay;
-
-use stdsimd::vendor::*;
 
 #[macro_use]
 mod combinators;
@@ -105,14 +104,30 @@ fn is_version(c: u8) -> bool {
 
 named!(line_ending, alt!(tag!("\r\n") | tag!("\n")));
 
+#[cfg(feature = "simd")]
 fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
-  //let range = &[0, 32, 127, 127];
   let range = b"\0 \x7F\x7F";
   do_parse!(input,
     method: take_while1!(is_token)     >>
             char!(' ') >>
-    //uri:    take_while1_unrolled!(is_token) >>
     uri:    take_while1_simd!(is_token, range) >>
+            char!(' ') >>
+    version: http_version              >>
+    line_ending                        >>
+    ({
+      req.method  = method;
+      req.uri     = uri;
+      req.version = version;
+    })
+  )
+}
+
+#[cfg(not(feature = "simd"))]
+fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
+  do_parse!(input,
+    method: take_while1!(is_token)     >>
+            char!(' ') >>
+    uri:    take_while1_unrolled!(is_token) >>
             char!(' ') >>
     version: http_version              >>
     line_ending                        >>
@@ -132,10 +147,17 @@ named!(http_version<u8>, preceded!(
 //const header_value_range:&[u8] = &[0, 010, 012, 037, 177, 177];
 const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
 
+#[cfg(feature = "simd")]
 named!(header_value, delimited!(
     take_while1!(is_horizontal_space),
-    //take_while1_unrolled!(is_header_value_token),
     take_while1_simd!(is_header_value_token, header_value_range),
+    line_ending
+));
+
+#[cfg(not(feature = "simd"))]
+named!(header_value, delimited!(
+    take_while1!(is_horizontal_space),
+    take_while1_unrolled!(is_header_value_token),
     line_ending
 ));
 
