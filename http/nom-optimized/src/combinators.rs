@@ -168,6 +168,7 @@ macro_rules! take_while1_simd (
 );
 
 #[test]
+#[cfg(feature = "simd")]
 fn simd_test() {
   fn is_token(c: u8) -> bool {
     c > 0x20 && c < 0x7F
