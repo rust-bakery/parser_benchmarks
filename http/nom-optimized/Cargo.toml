@@ -7,3 +7,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 nom = {git = "https://github.com/Geal/nom" }
 bencher = "0.1"
 stdsimd = "0.0.4"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
