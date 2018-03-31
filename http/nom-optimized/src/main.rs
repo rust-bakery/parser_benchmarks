@@ -1,3 +1,5 @@
+#![feature(const_fn)]
+
 #[macro_use]
 extern crate bencher;
 
@@ -28,64 +30,46 @@ struct Header<'a> {
     value: &'a [u8],
 }
 
-fn is_token(c: u8) -> bool {
+fn is_url_token(c: u8) -> bool {
   c > 0x20 && c < 0x7F
 }
 
-macro_rules! byte_map {
-    ($($flag:expr,)*) => ([
-        $($flag != 0,)*
-    ])
+const fn is_token_cst(c: u8) -> bool {
+  return !(
+    c <= 32         ||
+    c >= 127        ||
+    c == '(' as u8  ||
+    c == ')' as u8  ||
+    c == '<' as u8  ||
+    c == '>' as u8  ||
+    c == '@' as u8  ||
+    c == ',' as u8  ||
+    c == ';' as u8  ||
+    c == ':' as u8  ||
+    c == '\\' as u8 ||
+    c == '"' as u8  ||
+    c == '/' as u8  ||
+    c == '[' as u8  ||
+    c == ']' as u8  ||
+    c == '?' as u8  ||
+    c == '=' as u8  ||
+    c == '{' as u8  ||
+    c == '}' as u8
+  )
 }
 
-static HEADER_NAME_MAP: [bool; 256] = byte_map![
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
-    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
+make_map!(is_token, is_token_cst);
 
 #[inline]
 fn is_header_name_token(b: u8) -> bool {
-    HEADER_NAME_MAP[b as usize]
+  is_token(b)
 }
 
-static HEADER_VALUE_MAP: [bool; 256] = byte_map![
-    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-];
-
-
-#[inline]
-fn is_header_value_token(b: u8) -> bool {
-    HEADER_VALUE_MAP[b as usize]
+const fn is_header_value_token_cst(c: u8) -> bool {
+  return c == '\t' as u8 || (c > 31 && c != 127)
 }
+
+make_map!(is_header_value_token, is_header_value_token_cst);
 
 fn not_line_ending(c: u8) -> bool {
     c != b'\r' && c != b'\n'
@@ -110,7 +94,7 @@ fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a
   do_parse!(input,
     method: take_while1!(is_token)     >>
             char!(' ') >>
-    uri:    take_while1_simd!(is_token, range) >>
+    uri:    take_while1_simd!(is_url_token, range) >>
             char!(' ') >>
     version: http_version              >>
     line_ending                        >>
@@ -127,7 +111,7 @@ fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a
   do_parse!(input,
     method: take_while1!(is_token)     >>
             char!(' ') >>
-    uri:    take_while1_unrolled!(is_token) >>
+    uri:    take_while1_unrolled!(is_url_token) >>
             char!(' ') >>
     version: http_version              >>
     line_ending                        >>
@@ -245,6 +229,7 @@ Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxx
 
 #[test]
 fn httparse_test() {
+  use std::str;
   let data = &b"GET /wp-content/uploads/2010/03/hello-kitty-darth-vader-pink.jpg HTTP/1.1\r\n\
 Host: www.kittyhell.com\r\n\
 User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; ja-JP-mac; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 Pathtraq/0.9\r\n\
@@ -264,6 +249,9 @@ Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxx
   let mut headers = [Header{ name: &[], value: &[] }; 16];
   let res = request(data, &mut req, &mut headers);
   println!("res:{:?}\nreq:\n{:?}\nheaders:\n{:?}", res, req, headers);
+  if let Err(nom::Err::Error(nom::Context::Code(ref i, ref e))) = res {
+    println!("got error {:?} at input:\n{}", e, str::from_utf8(i).unwrap());
+  }
   res.unwrap();
 }
 
