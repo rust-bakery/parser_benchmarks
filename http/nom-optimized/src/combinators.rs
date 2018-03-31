@@ -1,6 +1,8 @@
 use nom::IResult;
 use nom::HexDisplay;
 
+use std::str::from_utf8;
+
 #[macro_export]
 macro_rules! take_while1_unrolled (
   ($input:expr, $predicate: expr) => (
@@ -167,11 +169,12 @@ macro_rules! take_while1_simd (
 
 #[test]
 fn simd_test() {
-  //let range = &[0, 040, 177, 177];
-  //let range = &[0, 32, 127, 127];
+  fn is_token(c: u8) -> bool {
+    c > 0x20 && c < 0x7F
+  }
+
   let range = b"\0 \x7F\x7F";
   let input = b"/abcd/efgh/ijkl/pouet/ 1234579";
-  //let input = b"/a  bcd/efgh/ijkl/pouet/ 1234579";
   let input = b"/abcd/efgh/ij kl/pouet/ 1234579";
   let res: IResult<&[u8], &[u8]> = take_while1_simd!(input, is_token, range);
 
