@@ -1,6 +1,6 @@
 compilation line to activate SSE4.2:
 
-`RUSTFLAGS="-C target-cpu=native" cargo build --release`
+`RUSTFLAGS="-C target-feature=+sse2" cargo build --release`
 
 Without the flags`(or if your CPU does not support it), you might get
 the following compilation error:

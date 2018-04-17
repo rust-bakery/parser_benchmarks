@@ -1,8 +1,3 @@
-use nom::IResult;
-use nom::HexDisplay;
-
-use std::str::from_utf8;
-
 #[macro_export]
 macro_rules! take_while1_unrolled (
   ($input:expr, $predicate: expr) => (
@@ -99,8 +94,7 @@ macro_rules! take_while1_unrolled (
 #[macro_export]
 macro_rules! take_while1_simd (
   ($input:expr, $predicate:expr, $ranges:expr) => ({
-      #[cfg(feature = "simd")]
-      use stdsimd::vendor::*;
+      use std::arch::x86_64::{_mm_loadu_si128,_mm_cmpestri,_SIDD_LEAST_SIGNIFICANT,_SIDD_CMP_RANGES,_SIDD_UBYTE_OPS};
 
       use nom::Err;
       use nom::Context;
