@@ -28,14 +28,9 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
+#include <time.h>
 
 #include "http_parser.h"
-
-void get_time(struct timeval *t) {
-    struct timezone tzp;
-    gettimeofday(t, &tzp);
-    //return t.tv_sec*1e9 + t.tv_usec*1e3;
-}
 
 struct http_string {
     size_t len;
@@ -266,10 +261,10 @@ void bench(char* name, char* path) {
   printf("starting iterations:\n");
   //parse(buffer, lSize);
 
-  struct timeval t1, t2;
+  struct timespec t1, t2;
   for(int i = 0; i < iterations; i++) {
     //printf("i: %d\n", i);
-    get_time(&t1);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
     ssize_t np = 0;
     do {
       //printf("passing:\n%s", buffer + np);
@@ -282,14 +277,14 @@ void bench(char* name, char* path) {
       break;
     }
     //parse(buffer, lSize);
-    get_time(&t2);
+    clock_gettime(CLOCK_MONOTONIC, &t2);
     uint64_t secs  = t2.tv_sec - t1.tv_sec;
-    uint64_t usecs = t2.tv_usec - t1.tv_usec;
+    uint64_t nsecs = t2.tv_nsec - t1.tv_nsec;
     //printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
     //printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
     // the seconds are not relevant
     //measured[i] = secs*1e9 + usecs*1e3;
-    measured[i] = usecs;
+    measured[i] = nsecs;
     //printf("usecs: %d, measured: %d\n", usecs, measured[i]);
     acc += measured[i];
   }
@@ -306,7 +301,7 @@ void bench(char* name, char* path) {
   //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
 
   //printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
-  printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);
+  printf("%lf ns/iter (variance: %lf)\n", mean, variance);
   fclose(fp);
   free(buffer);
 }
@@ -320,19 +315,19 @@ void bench_one(char* name, char* buffer) {
   printf("starting iterations:\n");
   //parse(buffer, lSize);
 
-  struct timeval t1, t2;
+  struct timespec t1, t2;
   for(int i = 0; i < iterations; i++) {
     //printf("i: %d\n", i);
-    get_time(&t1);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
     parse(buffer, lSize);
-    get_time(&t2);
+    clock_gettime(CLOCK_MONOTONIC, &t2);
     uint64_t secs  = t2.tv_sec - t1.tv_sec;
-    uint64_t usecs = t2.tv_usec - t1.tv_usec;
-    printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
-    printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
+    uint64_t nsecs = t2.tv_nsec - t1.tv_nsec;
+    //printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
+    //printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
     // the seconds are not relevant
     //measured[i] = secs*1e9 + usecs*1e3;
-    measured[i] = usecs;
+    measured[i] = nsecs;
     //printf("usecs: %d, measured: %d\n", usecs, measured[i]);
     acc += measured[i];
   }
@@ -349,7 +344,7 @@ void bench_one(char* name, char* buffer) {
   //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
 
   //printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
-  printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);
+  printf("%lf ns/iter (variance: %lf)\n", mean, variance);
 }
 
 void one_test() {
