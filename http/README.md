@@ -9,6 +9,13 @@ This repository holds three different versions of a HTTP parser, written in:
 - C with [joyent/http-parser](https://github.com/joyent/http-parser)
 - C with [h2o/picohttpparser](https://github.com/h2o/picohttpparser)
 
+meanings of the various benchmarks:
+
+- `one_test` is a small HTTP request
+- `httpparse_example_test` is a larger request (long path, complete user agent header and a long cookie)
+- `small_test` is parsing the `http-requests.txt` file containing 55 HTTP requests
+- `bigger_test` is parsing the `bigger.txt` file containing 275 HTTP requests
+
 ## Results
 
 The benchmarks were run on a late 2013 Macbook Pro, quad core 2,3 GHz Intel Core i7.
