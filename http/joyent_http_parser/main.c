@@ -311,8 +311,80 @@ void bench(char* name, char* path) {
   free(buffer);
 }
 
+void bench_one(char* name, char* buffer) {
+  int iterations = 1000;
+  uint64_t measured[1000];
+  uint64_t acc = 0;
+  long lSize = strlen(buffer);
+
+  printf("starting iterations:\n");
+  //parse(buffer, lSize);
+
+  struct timeval t1, t2;
+  for(int i = 0; i < iterations; i++) {
+    //printf("i: %d\n", i);
+    get_time(&t1);
+    parse(buffer, lSize);
+    get_time(&t2);
+    uint64_t secs  = t2.tv_sec - t1.tv_sec;
+    uint64_t usecs = t2.tv_usec - t1.tv_usec;
+    printf("t1:%d, t2: %d\n", t1.tv_sec, t2.tv_sec);
+    printf("ut1:%d, ut2: %d\n", t1.tv_usec, t2.tv_usec);
+    // the seconds are not relevant
+    //measured[i] = secs*1e9 + usecs*1e3;
+    measured[i] = usecs;
+    //printf("usecs: %d, measured: %d\n", usecs, measured[i]);
+    acc += measured[i];
+  }
+
+  printf("acc: %llu, iterations: %d\n", acc, iterations);
+  double mean = acc / iterations;
+  double acc2 = 0;
+  for(int t =0; t < iterations; t++) {
+    acc2 = pow(fabs(measured[t] - mean), 2);
+  }
+
+  double variance = acc2 / iterations;
+  printf("\n\nbench %s:\n", name);
+  //printf("begin: %f\nend: %f\ndiff: %f\n", begin, end, end - begin);
+
+  //printf("%f ns/iter (variance: %f)\n", mean * 1e9, variance * 1e9);
+  printf("%lf ns/iter (variance: %lf)\n", mean * 1000, variance * 1000);
+}
+
+void one_test() {
+ char * one_request = "GET / HTTP/1.1\r\n"
+   "Host: www.reddit.com\r\n"
+   "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:15.0) Gecko/20100101 Firefox/15.0.1\r\n"
+   "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+   "Accept-Language: en-us,en;q=0.5\r\n"
+   "Accept-Encoding: gzip, deflate\r\n"
+   "Connection: keep-alive\r\n\r\n";
+
+ bench_one("one_test", one_request);
+}
+
+void httparse_example_test() {
+ char * request = "GET /wp-content/uploads/2010/03/hello-kitty-darth-vader-pink.jpg HTTP/1.1\r\n"
+   "Host: www.kittyhell.com\r\n"
+   "User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; ja-JP-mac; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3 Pathtraq/0.9\r\n"
+   "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+   "Accept-Language: ja,en-us;q=0.7,en;q=0.3\r\n"
+   "Accept-Encoding: gzip,deflate\r\n"
+   "Accept-Charset: Shift_JIS,utf-8;q=0.7,*;q=0.7\r\n"
+   "Keep-Alive: 115\r\n"
+   "Connection: keep-alive\r\n"
+   "Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.xxxxxxxxxx.x; __utmz=xxxxxxxxx.xxxxxxxxxx.x.x.utmccn=(referral)|utmcsr=reader.livedoor.com|utmcct=/reader/|utmcmd=referral\r\n\r\n";
+
+
+ bench_one("httparse_example_test", request);
+}
+
+
 int main(int argc, char *argv[]) {
   bench("small", "../http-requests.txt");
   bench("bigger", "../bigger.txt");
+  one_test();
+  httparse_example_test();
 }
 
