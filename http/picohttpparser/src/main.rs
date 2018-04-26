@@ -50,6 +50,17 @@ Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxx
   parse(b, data)
 }
 
+fn small_test(b: &mut Bencher) {
+  let data = include_bytes!("../../http-requests.txt");
+  b.bytes = data.len() as u64;
+  parse(b, data)
+}
+
+fn bigger_test(b: &mut Bencher) {
+  let data = include_bytes!("../../bigger.txt");
+  b.bytes = data.len() as u64;
+  parse(b, data)
+}
 
 fn parse(b: &mut Bencher, buffer: &[u8]) {
   use std::mem;
@@ -60,34 +71,47 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
 
   #[repr(C)]
   struct Headers<'a>(&'a mut [Header<'a>]);
-  let method = [0i8; 16];
-  let path = [0i8; 100];
-  let mut minor_version = 0;
-  let mut h = [Header(&[], &[]); 16];
-  let mut h_len = h.len();
-  let headers = Headers(&mut h);
-  let prev_buf_len = 0;
 
   b.bytes = buffer.len() as u64;
   b.iter(|| {
     let mut buf = black_box(buffer);
-    let ret = unsafe {
-      pico::ffi::phr_parse_request(
-        buf.as_ptr() as *const _,
-        buf.len(),
-        &mut method.as_ptr(),
-        &mut 16,
-        &mut path.as_ptr(),
-        &mut 100,
-        &mut minor_version,
-        mem::transmute::<*mut Header, *mut pico::ffi::phr_header>(headers.0.as_mut_ptr()),
-        &mut h_len as *mut usize as *mut _,
-        prev_buf_len
-      )
-    };
-    assert_eq!(ret, buf.len() as i32);
+    let mut index = 0;
+    let len = buf.len();
+    while  index < len {
+      let slice = &buf[index..];
+
+      let method = [0i8; 16];
+      let path = [0i8; 100];
+      let mut minor_version = 0;
+      let mut h = [Header(&[], &[]); 16];
+      let mut h_len = h.len();
+      let headers = Headers(&mut h);
+      let prev_buf_len = 0;
+
+      let ret = unsafe {
+        pico::ffi::phr_parse_request(
+          slice.as_ptr() as *const _,
+          slice.len(),
+          &mut method.as_ptr(),
+          &mut 16,
+          &mut path.as_ptr(),
+          &mut 100,
+          &mut minor_version,
+          mem::transmute::<*mut Header, *mut pico::ffi::phr_header>(headers.0.as_mut_ptr()),
+          &mut h_len as *mut usize as *mut _,
+          prev_buf_len
+        )
+      };
+
+      if ret < 0 {
+        println!("error: ret = {}", ret);
+        break;
+      }
+
+      index += ret as usize;
+    }
   });
 }
 
-benchmark_group!(http, one_test, httparse_example_test);
+benchmark_group!(http, one_test, small_test, bigger_test, httparse_example_test);
 benchmark_main!(http);

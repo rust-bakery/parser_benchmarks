@@ -50,13 +50,35 @@ Cookie: wp_ozh_wsa_visits=2; wp_ozh_wsa_visit_lasttime=xxxxxxxxxx; __utma=xxxxxx
   parse(b, data)
 }
 
+fn small_test(b: &mut Bencher) {
+  let data = include_bytes!("../../http-requests.txt");
+  b.bytes = data.len() as u64;
+  parse(b, data)
+}
+
+fn bigger_test(b: &mut Bencher) {
+  let data = include_bytes!("../../bigger.txt");
+  b.bytes = data.len() as u64;
+  parse(b, data)
+}
 
 fn parse(b: &mut Bencher, buffer: &[u8]) {
-  let mut headers = [httparse::Header{ name: "", value: &[] }; 16];
-  let mut req = httparse::Request::new(&mut headers);
   b.iter(|| {
       let mut buf = black_box(buffer);
-      assert_eq!(req.parse(buf).unwrap(), httparse::Status::Complete(buf.len()));
+      let mut index = 0;
+      let len = buf.len();
+      while  index < len {
+        let slice = &buf[index..];
+
+        let mut headers = [httparse::Header{ name: "", value: &[] }; 16];
+        let mut req = httparse::Request::new(&mut headers);
+
+        if let httparse::Status::Complete(sz) = req.parse(buf).unwrap() {
+          index += sz;
+        } else {
+          panic!("parse error");
+        }
+      }
   });
 
   /*
@@ -81,5 +103,5 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
   */
 }
 
-benchmark_group!(http, one_test, httparse_example_test);
+benchmark_group!(http, one_test, small_test, bigger_test, httparse_example_test);
 benchmark_main!(http);
