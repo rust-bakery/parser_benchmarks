@@ -1,3 +1,5 @@
+use nom::IResult;
+
 #[macro_export]
 macro_rules! take_while1_unrolled (
   ($input:expr, $predicate: expr) => (
@@ -94,88 +96,100 @@ macro_rules! take_while1_unrolled (
 #[macro_export]
 macro_rules! take_while1_simd (
   ($input:expr, $predicate:expr, $ranges:expr) => ({
-      use std::arch::x86_64::{_mm_loadu_si128,_mm_cmpestri,_SIDD_LEAST_SIGNIFICANT,_SIDD_CMP_RANGES,_SIDD_UBYTE_OPS};
-
-      use nom::Err;
-      use nom::Context;
-      use nom::Needed;
-      use nom::ErrorKind;
-
-      let input = $input;
-
-      let mut start = input.as_ptr() as usize;
-      let mut i = input.as_ptr() as usize;
-      let mut left = input.len();
-      let mut found = false;
-
-      if left >= 16 {
-
-        let ranges16 = unsafe { _mm_loadu_si128($ranges.as_ptr()  as *const _) };
-        let ranges_len = $ranges.len() as i32;
-        loop {
-          let sl = unsafe { _mm_loadu_si128(i  as *const _) };
-
-          let idx = unsafe {
-            _mm_cmpestri(
-              ranges16, ranges_len,
-              sl, 16,
-              _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES | _SIDD_UBYTE_OPS)
-          };
-
-          if idx != 16 {
-            i += idx as usize;
-            found = true;
-            break;
-          }
-
-          i += 16;
-          left -= 16;
-
-          if left < 16 {
-            break;
-          }
-        }
-      }
-
-      let mut i = i - start;
-      if !found {
-        loop {
-          if !$predicate(unsafe { *input.get_unchecked(i) }) {
-            break;
-          }
-          i = i+1;
-          if i == input.len() {
-            break;
-          }
-        }
-      }
-
-      if i == 0 {
-        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
-      } else if i == input.len() {
-        Err(Err::Incomplete(Needed::Unknown))
-      } else {
-        let (prefix, suffix) = input.split_at(i);
-        Ok((suffix, prefix))
-      }
+      $crate::combinators::take_while1_simd($input, $predicate, $ranges)
   })
 );
+
+pub fn take_while1_simd<'a, F>(
+    input: &'a [u8],
+    mut predicate: F,
+    ranges: &[u8],
+) -> IResult<&'a [u8], &'a [u8]>
+where
+    F: FnMut(u8) -> bool,
+{
+    use std::arch::x86_64::{_mm_cmpestri, _mm_loadu_si128, _SIDD_CMP_RANGES,
+                            _SIDD_LEAST_SIGNIFICANT, _SIDD_UBYTE_OPS};
+
+    use nom::Context;
+    use nom::Err;
+    use nom::ErrorKind;
+    use nom::Needed;
+
+    let mut start = input.as_ptr() as usize;
+    let mut i = input.as_ptr() as usize;
+    let mut left = input.len();
+    let mut found = false;
+
+    if left >= 16 {
+        let ranges16 = unsafe { _mm_loadu_si128(ranges.as_ptr() as *const _) };
+        let ranges_len = ranges.len() as i32;
+        loop {
+            let sl = unsafe { _mm_loadu_si128(i as *const _) };
+
+            let idx = unsafe {
+                _mm_cmpestri(
+                    ranges16,
+                    ranges_len,
+                    sl,
+                    16,
+                    _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES | _SIDD_UBYTE_OPS,
+                )
+            };
+
+            if idx != 16 {
+                i += idx as usize;
+                found = true;
+                break;
+            }
+
+            i += 16;
+            left -= 16;
+
+            if left < 16 {
+                break;
+            }
+        }
+    }
+
+    let mut i = i - start;
+    if !found {
+        loop {
+            if !predicate(unsafe { *input.get_unchecked(i) }) {
+                break;
+            }
+            i = i + 1;
+            if i == input.len() {
+                break;
+            }
+        }
+    }
+
+    if i == 0 {
+        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
+    } else if i == input.len() {
+        Err(Err::Incomplete(Needed::Unknown))
+    } else {
+        let (prefix, suffix) = input.split_at(i);
+        Ok((suffix, prefix))
+    }
+}
 
 #[test]
 #[cfg(feature = "simd")]
 fn simd_test() {
-  fn is_token(c: u8) -> bool {
-    c > 0x20 && c < 0x7F
-  }
+    fn is_token(c: u8) -> bool {
+        c > 0x20 && c < 0x7F
+    }
 
-  let range = b"\0 \x7F\x7F";
-  let input = b"/abcd/efgh/ijkl/pouet/ 1234579";
-  let input = b"/abcd/efgh/ij kl/pouet/ 1234579";
-  let res: IResult<&[u8], &[u8]> = take_while1_simd!(input, is_token, range);
+    let range = b"\0 \x7F\x7F";
+    let input = b"/abcd/efgh/ijkl/pouet/ 1234579";
+    let input = b"/abcd/efgh/ij kl/pouet/ 1234579";
+    let res: IResult<&[u8], &[u8]> = take_while1_simd!(input, is_token, range);
 
-  let (i, o) = res.unwrap();
-  assert_eq!(from_utf8(i).unwrap(), " kl/pouet/ 1234579");
-  assert_eq!(from_utf8(o).unwrap(), "/abcd/efgh/ij");
+    let (i, o) = res.unwrap();
+    assert_eq!(from_utf8(i).unwrap(), " kl/pouet/ 1234579");
+    assert_eq!(from_utf8(o).unwrap(), "/abcd/efgh/ij");
 }
 
 macro_rules! cl_map {
@@ -212,13 +226,18 @@ macro_rules! make_map (
 
 #[test]
 fn map_test() {
-  const fn is_string_token_cst(c: u8) -> bool {
-    c != b'"' && c != b'\\' && c > 31 && c != 127
-  }
+    const fn is_string_token_cst(c: u8) -> bool {
+        c != b'"' && c != b'\\' && c > 31 && c != 127
+    }
 
-  make_map!(is_string_token, is_string_token_cst);
+    make_map!(is_string_token, is_string_token_cst);
 
-  for i in 0u8..255 {
-    assert_eq!(is_string_token(i), is_string_token_cst(i), "not equal for {}", i);
-  }
+    for i in 0u8..255 {
+        assert_eq!(
+            is_string_token(i),
+            is_string_token_cst(i),
+            "not equal for {}",
+            i
+        );
+    }
 }
