@@ -8,7 +8,7 @@ extern crate combine;
 
 use bencher::{black_box, Bencher};
 
-use combine::{many, token, ParseError, parser, Parser, RangeStream, many1};
+use combine::{many, token, ParseError, parser, Parser, RangeStream, many1, skip_many};
 use combine::range::{range, take, take_while1};
 use combine::stream::{FullRangeStream, easy};
 use combine::error::Consumed;
@@ -24,10 +24,10 @@ struct Request<'a> {
     version: &'a [u8],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Header<'a> {
     name: &'a [u8],
-    value: Vec<&'a [u8]>,
+    value: &'a [u8],
 }
 
 fn is_token(c: u8) -> bool {
@@ -100,14 +100,14 @@ where
     (
         take_while1(is_token),
         token(b':'),
-        many1(message_header_line),
+        message_header_line,
     ).map(|(name, _, value)| Header {
         name: name,
         value: value,
     })
 }
 
-fn parse_http_request<'a, I>(input: I) -> Result<((Request<'a>, Vec<Header<'a>>), I), I::Error>
+fn parse_http_request<'a, I>(input: I, mut headers: &mut [Header<'a>]) -> Result<(Request<'a>, I), I::Error>
 where
     I: FullRangeStream<Item = u8, Range = &'a [u8]>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
@@ -122,12 +122,15 @@ where
             version: http_version,
         });
 
+    let mut headers = headers.iter_mut();
     let mut request = (
         request_line,
         end_of_line(),
-        many(message_header()),
+        skip_many(message_header().map(|header| {
+            *headers.next().unwrap() = header;
+        })),
         end_of_line(),
-    ).map(|(request, _, headers, _)| (request, headers));
+    ).map(|(request, _, _, _)| request);
 
     request.parse(input)
 }
@@ -178,10 +181,14 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
     b.iter(|| {
         let mut buf = black_box(buffer);
         let mut v = Vec::new();
+        let mut headers = [Header {
+            name: &[],
+            value: &[],
+        }; 16];
 
         while !buf.is_empty() {
             // Needed for inferrence for many(message_header)
-            match parse_http_request(buf) {
+            match parse_http_request(buf, &mut headers) {
                 Ok((o, i)) => {
                     v.push(o);
 

@@ -98,6 +98,7 @@ macro_rules! take_while1_simd (
   })
 );
 
+#[inline(always)]
 pub fn take_while1_simd<'a, F>(
     input: &'a [u8],
     mut predicate: F,
