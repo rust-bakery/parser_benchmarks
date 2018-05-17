@@ -1,5 +1,3 @@
-use nom::IResult;
-
 #[macro_export]
 macro_rules! take_while1_unrolled (
   ($input:expr, $predicate: expr) => (
@@ -104,17 +102,12 @@ pub fn take_while1_simd<'a, F>(
     input: &'a [u8],
     mut predicate: F,
     ranges: &[u8],
-) -> IResult<&'a [u8], &'a [u8]>
+) -> Result<(&'a [u8], &'a [u8]), ()>
 where
     F: FnMut(u8) -> bool,
 {
     use std::arch::x86_64::{_mm_cmpestri, _mm_loadu_si128, _SIDD_CMP_RANGES,
                             _SIDD_LEAST_SIGNIFICANT, _SIDD_UBYTE_OPS};
-
-    use nom::Context;
-    use nom::Err;
-    use nom::ErrorKind;
-    use nom::Needed;
 
     let mut start = input.as_ptr() as usize;
     let mut i = input.as_ptr() as usize;
@@ -166,9 +159,7 @@ where
     }
 
     if i == 0 {
-        Err(Err::Error(Context::Code(input, ErrorKind::TakeWhile1)))
-    } else if i == input.len() {
-        Err(Err::Incomplete(Needed::Unknown))
+        Err(())
     } else {
         let (prefix, suffix) = input.split_at(i);
         Ok((suffix, prefix))
@@ -241,3 +232,9 @@ fn map_test() {
         );
     }
 }
+
+const fn is_header_value_token_cst(c: u8) -> bool {
+    return c == '\t' as u8 || (c > 31 && c != 127);
+}
+
+make_map!(is_header_value_token, is_header_value_token_cst);

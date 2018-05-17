@@ -1,3 +1,6 @@
+#![feature(const_fn)]
+#![feature(cfg_target_feature, target_feature, stdsimd)]
+
 #[macro_use]
 extern crate bencher;
 #[macro_use]
@@ -5,8 +8,14 @@ extern crate combine;
 
 use bencher::{black_box, Bencher};
 
-use combine::range::{range, take_while1};
-use combine::{many, token, ParseError, Parser, RangeStream, many1};
+use combine::{many, token, ParseError, parser, Parser, RangeStream, many1};
+use combine::range::{range, take, take_while1};
+use combine::stream::{FullRangeStream, easy};
+use combine::error::Consumed;
+
+
+#[path = "../../nom-optimized/src/combinators.rs"]
+mod combinators;
 
 #[derive(Debug)]
 struct Request<'a> {
@@ -70,12 +79,21 @@ where
 
 fn message_header<'a, I>() -> impl Parser<Output = Header<'a>, Input = I>
 where
-    I: RangeStream<Item = u8, Range = &'a [u8]>,
+    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let message_header_line = (
         take_while1(is_horizontal_space),
-        take_while1(|c| c != b'\r' && c != b'\n'),
+        parser(|input: &mut I| {
+            const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
+            match combinators::take_while1_simd(input.range(), combinators::is_header_value_token, header_value_range) {
+                Ok((remaining, value)) => {
+                    let _ = input.uncons_range(value.len());
+                    Ok((value, Consumed::Consumed(())))
+                }
+                Err(()) => Err(Consumed::Empty(I::Error::empty(input.position()).into())),
+            }
+        }),
         end_of_line(),
     ).map(|(_, line, _)| line);
 
@@ -91,7 +109,7 @@ where
 
 fn parse_http_request<'a, I>(input: I) -> Result<((Request<'a>, Vec<Header<'a>>), I), I::Error>
 where
-    I: RangeStream<Item = u8, Range = &'a [u8]>,
+    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let http_version = range(&b"HTTP/"[..]).with(take_while1(is_http_version));
