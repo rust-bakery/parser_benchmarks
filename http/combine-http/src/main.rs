@@ -67,17 +67,17 @@ where
     })
 }
 
-fn end_of_line<'a, I>() -> impl Parser<Output = u8, Input = I>
+fn end_of_line<'a, I>() -> impl Parser<Output = (), Input = I> + 'a
 where
-    I: RangeStream<Item = u8, Range = &'a [u8]>,
+    I: RangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    (token(b'\r'), token(b'\n')).map(|_| b'\r').or(token(b'\n'))
+    range(b"\r\n" as &[u8]).or(range(b"\n" as &[u8])).map(|_| ())
 }
 
 fn message_header<'a, I>() -> impl Parser<Output = Header<'a>, Input = I>
 where
-    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
+    I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
@@ -99,7 +99,7 @@ where
 
 fn parse_http_request<'a, I>(input: I, mut headers: &mut [Header<'a>]) -> Result<(Request<'a>, I), I::Error>
 where
-    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
+    I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let http_version = range(&b"HTTP/"[..]).with(take_while1(is_http_version));

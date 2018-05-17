@@ -94,7 +94,14 @@ macro_rules! take_while1_unrolled (
 #[macro_export]
 macro_rules! take_while1_simd (
   ($input:expr, $predicate:expr, $ranges:expr) => ({
-      $crate::combinators::take_while1_simd($input, $predicate, $ranges)
+      use nom::Err;
+      use nom::Context;
+      use nom::ErrorKind;
+
+      match $crate::combinators::take_while1_simd($input, $predicate, $ranges) {
+          Ok(x) => Ok(x),
+          Err(()) => Err(Err::Error(Context::Code($input, ErrorKind::TakeWhile1))),
+      }
   })
 );
 
