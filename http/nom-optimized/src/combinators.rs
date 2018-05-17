@@ -239,3 +239,13 @@ const fn is_header_value_token_cst(c: u8) -> bool {
 }
 
 make_map!(is_header_value_token, is_header_value_token_cst);
+
+const fn is_token_cst(c: u8) -> bool {
+    return !(c <= 32 || c >= 127 || c == '(' as u8 || c == ')' as u8 || c == '<' as u8
+        || c == '>' as u8 || c == '@' as u8 || c == ',' as u8 || c == ';' as u8
+        || c == ':' as u8 || c == '\\' as u8 || c == '"' as u8 || c == '/' as u8
+        || c == '[' as u8 || c == ']' as u8 || c == '?' as u8 || c == '=' as u8
+        || c == '{' as u8 || c == '}' as u8);
+}
+
+make_map!(is_token, is_token_cst);

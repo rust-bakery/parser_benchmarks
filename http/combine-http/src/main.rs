@@ -17,6 +17,8 @@ use combine::error::Consumed;
 #[path = "../../nom-optimized/src/combinators.rs"]
 mod combinators;
 
+use combinators::{is_header_value_token, is_token};
+
 #[derive(Debug)]
 struct Request<'a> {
     method: &'a [u8],
@@ -28,32 +30,6 @@ struct Request<'a> {
 struct Header<'a> {
     name: &'a [u8],
     value: &'a [u8],
-}
-
-fn is_token(c: u8) -> bool {
-    match c {
-        128...255
-        | 0...31
-        | b'('
-        | b')'
-        | b'<'
-        | b'>'
-        | b'@'
-        | b','
-        | b';'
-        | b':'
-        | b'\\'
-        | b'"'
-        | b'/'
-        | b'['
-        | b']'
-        | b'?'
-        | b'='
-        | b'{'
-        | b'}'
-        | b' ' => false,
-        _ => true,
-    }
 }
 
 fn is_url_token(c: u8) -> bool {
@@ -107,7 +83,7 @@ where
     const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
     let message_header_line = (
         take_while1(is_horizontal_space),
-        take_while1_simd(header_value_range, combinators::is_header_value_token),
+        take_while1_simd(header_value_range, is_header_value_token),
         end_of_line(),
     ).map(|(_, line, _)| line);
 

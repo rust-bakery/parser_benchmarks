@@ -14,7 +14,7 @@ use nom::IResult;
 #[macro_use]
 mod combinators;
 
-use combinators::is_header_value_token;
+use combinators::{is_header_value_token, is_token};
 
 #[derive(Debug)]
 struct Request<'a> {
@@ -32,16 +32,6 @@ struct Header<'a> {
 fn is_url_token(c: u8) -> bool {
     c > 0x20 && c < 0x7F
 }
-
-const fn is_token_cst(c: u8) -> bool {
-    return !(c <= 32 || c >= 127 || c == '(' as u8 || c == ')' as u8 || c == '<' as u8
-        || c == '>' as u8 || c == '@' as u8 || c == ',' as u8 || c == ';' as u8
-        || c == ':' as u8 || c == '\\' as u8 || c == '"' as u8 || c == '/' as u8
-        || c == '[' as u8 || c == ']' as u8 || c == '?' as u8 || c == '=' as u8
-        || c == '{' as u8 || c == '}' as u8);
-}
-
-make_map!(is_token, is_token_cst);
 
 #[inline]
 fn is_header_name_token(b: u8) -> bool {
