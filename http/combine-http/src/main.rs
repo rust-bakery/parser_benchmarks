@@ -56,6 +56,10 @@ fn is_token(c: u8) -> bool {
     }
 }
 
+fn is_url_token(c: u8) -> bool {
+    c > 0x20 && c < 0x7F
+}
+
 fn is_horizontal_space(c: u8) -> bool {
     c == b' ' || c == b'\t'
 }
@@ -67,6 +71,24 @@ fn is_not_space(c: u8) -> bool {
 }
 fn is_http_version(c: u8) -> bool {
     c >= b'0' && c <= b'9' || c == b'.'
+}
+
+fn take_while1_simd<'a, I, F>(range: &'static [u8], mut predicate: F) -> impl Parser<Output = &'a [u8], Input = I>
+where
+    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: FnMut(u8) -> bool,
+
+{
+    parser(move |input: &mut I| {
+        match combinators::take_while1_simd(input.range(), &mut predicate, range) {
+            Ok((remaining, value)) => {
+                let _ = input.uncons_range(value.len());
+                Ok((value, Consumed::Consumed(())))
+            }
+            Err(()) => Err(Consumed::Empty(I::Error::empty(input.position()).into())),
+        }
+    })
 }
 
 fn end_of_line<'a, I>() -> impl Parser<Output = u8, Input = I>
@@ -82,18 +104,10 @@ where
     I: FullRangeStream<Item = u8, Range = &'a [u8]>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
+    const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
     let message_header_line = (
         take_while1(is_horizontal_space),
-        parser(|input: &mut I| {
-            const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
-            match combinators::take_while1_simd(input.range(), combinators::is_header_value_token, header_value_range) {
-                Ok((remaining, value)) => {
-                    let _ = input.uncons_range(value.len());
-                    Ok((value, Consumed::Consumed(())))
-                }
-                Err(()) => Err(Consumed::Empty(I::Error::empty(input.position()).into())),
-            }
-        }),
+        take_while1_simd(header_value_range, combinators::is_header_value_token),
         end_of_line(),
     ).map(|(_, line, _)| line);
 
@@ -117,7 +131,7 @@ where
     let request_line = struct_parser!(Request {
             method: take_while1(is_token),
             _: take_while1(is_space),
-            uri: take_while1(is_not_space),
+            uri: take_while1_simd(b"\0 \x7F\x7F", is_url_token),
             _: take_while1(is_space),
             version: http_version,
         });
