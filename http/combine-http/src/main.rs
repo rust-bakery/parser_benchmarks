@@ -40,9 +40,6 @@ fn is_url_token(c: u8) -> bool {
 fn is_horizontal_space(c: u8) -> bool {
     c == b' ' || c == b'\t'
 }
-fn is_space(c: u8) -> bool {
-    c == b' '
-}
 
 fn take_while1_simd<'a, I, F>(range: &'static [u8], mut predicate: F) -> impl Parser<Output = &'a [u8], Input = I>
 where
@@ -76,7 +73,7 @@ where
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     const HEADER_VALUE_RANGE:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
-    let message_header_line = no_partial((
+    let header_value = no_partial((
         take_while1(is_horizontal_space),
         take_while1_simd(HEADER_VALUE_RANGE, is_header_value_token),
         end_of_line(),
@@ -85,10 +82,9 @@ where
     no_partial((
         take_while1(is_token),
         token(b':'),
-        message_header_line,
-    )).map(|(name, _, value)| Header {
-        name: name,
-        value: value,
+        header_value,
+    )).map(|(name, _, value)| {
+        Header { name, value }
     })
 }
 
@@ -101,18 +97,22 @@ where
 
     let request_line = no_partial(struct_parser!(Request {
             method: take_while1(is_token),
-            _: take_while1(is_space),
+            _: token(b' '),
             uri: take_while1_simd(b"\0 \x7F\x7F", is_url_token),
-            _: take_while1(is_space),
+            _: token(b' '),
             version: http_version,
         }));
 
-    let mut headers = headers.iter_mut();
+    // Would have used an iterator here but unfortunately it does not optimize as well
+    let mut i = 0;
     let mut request = no_partial((
         request_line,
         end_of_line(),
         skip_many(message_header().map(|header| {
-            *headers.next().unwrap() = header;
+            if let Some(out) = headers.get_mut(i) {
+                *out = header;
+                i += 1;
+            }
         })),
         end_of_line(),
     )).map(|(r, _, _, _)| *request = r);
