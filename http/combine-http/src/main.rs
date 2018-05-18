@@ -95,7 +95,7 @@ where
     })
 }
 
-fn parse_http_request<'a, I>(input: I, headers: &mut [Header<'a>]) -> Result<(Request<'a>, I), I::Error>
+fn parse_http_request<'a, I>(input: I, request: &mut Request<'a>, headers: &mut [Header<'a>]) -> Result<((), I), I::Error>
 where
     I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
@@ -118,7 +118,7 @@ where
             *headers.next().unwrap() = header;
         })),
         end_of_line(),
-    )).map(|(request, _, _, _)| request);
+    )).map(|(r, _, _, _)| *request = r);
 
     request.parse(input)
 }
@@ -169,6 +169,11 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
     b.iter(|| {
         let mut buf = black_box(buffer);
         let mut v = Vec::new();
+        let mut request = Request {
+            method: &[],
+            uri: &[],
+            version: &[],
+        };
         let mut headers = [Header {
             name: &[],
             value: &[],
@@ -176,7 +181,7 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
 
         while !buf.is_empty() {
             // Needed for inferrence for many(message_header)
-            match parse_http_request(buf, &mut headers) {
+            match parse_http_request(buf, &mut request, &mut headers) {
                 Ok((_o, i)) => {
                     v.push(());
 
