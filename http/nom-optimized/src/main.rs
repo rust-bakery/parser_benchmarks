@@ -64,7 +64,7 @@ fn request_line<'a, 'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'
     let range = b"\0 \x7F\x7F";
     do_parse!(
         input,
-        method: take_while1!(is_token) >> char!(' ') >> uri: take_while1_simd!(is_url_token, range)
+        method: take_while1_unrolled!(is_token) >> char!(' ') >> uri: take_while1_simd!(is_url_token, range)
             >> char!(' ') >> version: http_version >> line_ending >> ({
             req.method = method;
             req.uri = uri;
@@ -77,7 +77,7 @@ fn request_line<'a, 'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'
 fn request_line<'a, 'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a [u8], ()> {
     do_parse!(
         input,
-        method: take_while1!(is_token) >> char!(' ') >> uri: take_while1_unrolled!(is_url_token)
+        method: take_while1_unrolled!(is_token) >> char!(' ') >> uri: take_while1_unrolled!(is_url_token)
             >> char!(' ') >> version: http_version >> line_ending >> ({
             req.method = method;
             req.uri = uri;
@@ -101,7 +101,7 @@ const header_value_range: &[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
 named!(
     header_value,
     delimited!(
-        take_while1!(is_horizontal_space),
+        take_while1_unrolled!(is_horizontal_space),
         take_while1_simd!(is_header_value_token, header_value_range),
         line_ending
     )
@@ -111,14 +111,14 @@ named!(
 named!(
     header_value,
     delimited!(
-        take_while1!(is_horizontal_space),
+        take_while1_unrolled!(is_horizontal_space),
         take_while1_unrolled!(is_header_value_token),
         line_ending
     )
 );
 
 fn header<'a, 'h>(input: &'a [u8], header: &'h mut Header<'a>) -> IResult<&'a [u8], ()> {
-    let (input, name) = try_parse!(input, take_while1!(is_header_name_token));
+    let (input, name) = try_parse!(input, take_while1_unrolled!(is_header_name_token));
     header.name = name;
     let (input, _) = try_parse!(input, char!(':'));
     let (input, value) = try_parse!(input, header_value);

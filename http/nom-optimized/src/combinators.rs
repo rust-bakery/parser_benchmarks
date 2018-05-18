@@ -117,7 +117,7 @@ where
     use std::arch::x86_64::{_mm_cmpestri, _mm_loadu_si128, _SIDD_CMP_RANGES,
                             _SIDD_LEAST_SIGNIFICANT, _SIDD_UBYTE_OPS};
 
-    let mut start = input.as_ptr() as usize;
+    let start = input.as_ptr() as usize;
     let mut i = input.as_ptr() as usize;
     let mut left = input.len();
     let mut found = false;
