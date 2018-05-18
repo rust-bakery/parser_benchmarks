@@ -8,7 +8,7 @@ extern crate combine;
 
 use bencher::{black_box, Bencher};
 
-use combine::{token, ParseError, parser, Parser, RangeStream, skip_many};
+use combine::{token, one_of, ParseError, parser, Parser, RangeStream, skip_many};
 use combine::range::{range, take_while1};
 use combine::stream::FullRangeStream;
 use combine::error::Consumed;
@@ -24,7 +24,7 @@ use combinators::{is_header_value_token, is_token};
 struct Request<'a> {
     method: &'a [u8],
     uri: &'a [u8],
-    version: &'a [u8],
+    version: u8,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -42,9 +42,6 @@ fn is_horizontal_space(c: u8) -> bool {
 }
 fn is_space(c: u8) -> bool {
     c == b' '
-}
-fn is_http_version(c: u8) -> bool {
-    c >= b'0' && c <= b'9' || c == b'.'
 }
 
 fn take_while1_simd<'a, I, F>(range: &'static [u8], mut predicate: F) -> impl Parser<Output = &'a [u8], Input = I>
@@ -100,7 +97,7 @@ where
     I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let http_version = range(&b"HTTP/"[..]).with(take_while1(is_http_version));
+    let http_version = range(&b"HTTP/1."[..]).with(one_of(b"01".iter().cloned()).map(|c| if c == b'0' { 0 } else { 1 }));
 
     let request_line = no_partial(struct_parser!(Request {
             method: take_while1(is_token),
@@ -172,7 +169,7 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
         let mut request = Request {
             method: &[],
             uri: &[],
-            version: &[],
+            version: 0,
         };
         let mut headers = [Header {
             name: &[],
