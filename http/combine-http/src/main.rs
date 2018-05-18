@@ -177,8 +177,8 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
         while !buf.is_empty() {
             // Needed for inferrence for many(message_header)
             match parse_http_request(buf, &mut headers) {
-                Ok((o, i)) => {
-                    v.push(o);
+                Ok((_o, i)) => {
+                    v.push(());
 
                     buf = i
                 }
