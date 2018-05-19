@@ -1,26 +1,24 @@
-
 #[macro_use]
 extern crate bencher;
 
 #[macro_use]
 extern crate combine;
 
+use bencher::{black_box, Bencher};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::str;
-use bencher::{black_box, Bencher};
 
-use combine::{Parser, RangeStream, Stream, StreamOnce};
-use combine::error::{Consumed, ParseError};
+use combine::error::ParseError;
+use combine::{Parser, RangeStream, StreamOnce};
 
 use combine::parser::byte::{byte, spaces};
-use combine::parser::item::{any, one_of, satisfy_map};
-use combine::parser::sequence::between;
-use combine::parser::repeat::{sep_by, skip_many};
 use combine::parser::choice::{choice, optional};
-use combine::parser::function::parser;
-use combine::parser::range;
 use combine::parser::combinator::no_partial;
+use combine::parser::item::{one_of, satisfy_map};
+use combine::parser::range;
+use combine::parser::repeat::{escaped, sep_by};
+use combine::parser::sequence::between;
 
 #[derive(PartialEq, Debug)]
 enum Value<S>
@@ -45,8 +43,9 @@ where
         <P::Input as StreamOnce>::Position,
     >,
 {
-    // FIXME Need to accept more whitespace?
-    p.skip(range::take_while(|b| " \t\r\n".bytes().any(|a| a == b)))
+    no_partial(p.skip(range::take_while(|b| {
+        b == b' ' || b == b'\t' || b == b'\r' || b == b'\n'
+    })))
 }
 
 fn digits<'a, I>() -> impl Parser<Input = I, Output = &'a [u8]> + 'a
@@ -62,46 +61,17 @@ where
     I: RangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    no_partial(lex(range::recognize((
-        optional(one_of("+-".bytes())),
-        byte(b'0').or((
-            digits(),
-            optional((byte(b'.'), digits())),
-        ).map(|_| b'0')),
-        optional((
-            (one_of("eE".bytes()), optional(one_of("+-".bytes()))),
-            digits(),
-        )),
-    ))).map(|s: &'a [u8]| str::from_utf8(s).unwrap().parse().unwrap())
-        .expected("number"))
-}
-
-fn json_byte<I>() -> impl Parser<Input = I, Output = u8>
-where
-    I: Stream<Item = u8>,
-    I::Error: ParseError<I::Item, I::Range, I::Position>,
-{
-    parser(|input: &mut I| {
-        let (c, consumed) = try!(any().parse_lazy(input).into());
-        let mut back_slash_byte = satisfy_map(|c| {
-            Some(match c {
-                b'"' => b'"',
-                b'\\' => b'\\',
-                b'/' => b'/',
-                b'b' => '\u{0008}' as u8,
-                b'f' => '\u{000c}' as u8,
-                b'n' => b'\n',
-                b'r' => b'\r',
-                b't' => b'\t',
-                _ => return None,
-            })
-        });
-        match c {
-            b'\\' => consumed.combine(|_| back_slash_byte.parse_stream(input)),
-            b'"' => Err(Consumed::Empty(I::Error::empty(input.position()).into())),
-            _ => Ok((c, consumed)),
-        }
-    })
+    no_partial(
+        lex(range::recognize(no_partial((
+            optional(one_of("+-".bytes())),
+            byte(b'0').or((digits(), optional((byte(b'.'), digits()))).map(|_| b'0')),
+            optional((
+                (one_of("eE".bytes()), optional(one_of("+-".bytes()))),
+                digits(),
+            )),
+        )))).map(|s: &'a [u8]| str::from_utf8(s).unwrap().parse().unwrap())
+            .expected("number"),
+    )
 }
 
 fn json_string<'a, I>() -> impl Parser<Input = I, Output = &'a str>
@@ -109,16 +79,30 @@ where
     I: RangeStream<Item = u8, Range = &'a [u8]>,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    between(
-        byte(b'"'),
-        lex(byte(b'"')),
-        range::recognize(skip_many(json_byte())).map(|s| str::from_utf8(s).unwrap()),
-    ).expected("string")
+    let back_slash_byte = satisfy_map(|c| {
+        Some(match c {
+            b'"' => b'"',
+            b'\\' => b'\\',
+            b'/' => b'/',
+            b'b' => '\u{0008}' as u8,
+            b'f' => '\u{000c}' as u8,
+            b'n' => b'\n',
+            b'r' => b'\r',
+            b't' => b'\t',
+            _ => return None,
+        })
+    });
+    let inner = range::recognize(escaped(
+        range::take_while1(|b| b != b'\\' && b != b'"'),
+        b'\\',
+        back_slash_byte,
+    )).map(|s| str::from_utf8(s).unwrap());
+    between(byte(b'"'), lex(byte(b'"')), inner).expected("string")
 }
 
 fn object<'a, I>() -> impl Parser<Input = I, Output = HashMap<&'a str, Value<&'a str>>>
 where
-    I: RangeStream<Item = u8, Range = &'a [u8]>,
+    I: RangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     let field = (json_string(), lex(byte(b':')), json_value_()).map(|t| (t.0, t.2));
@@ -128,7 +112,7 @@ where
 
 fn array<'a, I>() -> impl Parser<Input = I, Output = Vec<Value<&'a str>>>
 where
-    I: RangeStream<Item = u8, Range = &'a [u8]>,
+    I: RangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
     between(
@@ -212,7 +196,7 @@ fn parse(b: &mut Bencher, buffer: &str) {
     b.iter(|| {
         let buf = black_box(buffer.as_bytes());
 
-        let result = parser.parse(buf).unwrap();
+        let result = parser.easy_parse(buf).unwrap();
         black_box(result)
     });
 }
