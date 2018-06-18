@@ -1,0 +1,40 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+
+use super::JsonValue;
+
+ws = #quiet<[ \r\n\t]*>
+comma = ws "," ws
+
+number -> JsonValue<'input>
+  = number:$("-"? ("0" / ([1-9]+ [0-9]*)) ("." [0-9]+)? ([eE] ("-" / "+")? [0-9+])?) { JsonValue::Num(f64::from_str(number).ok().unwrap()) }
+
+boolean -> JsonValue<'input>
+  = "true" { JsonValue::Boolean(true) } / "false" { JsonValue::Boolean(false) }
+
+string -> &'input str
+  = "\"" string:$(([^\\\"] / "\\\\" / "\\\"" / "\\r" / "\\n")* "\"") { string }
+
+json_string -> JsonValue<'input>
+  = string:string { JsonValue::Str(string) }
+
+array -> JsonValue<'input>
+  = ws "[" ws values:(value ** comma) ws "]" ws { JsonValue::Array(values) }
+
+key_value -> (&'input str, JsonValue<'input>)
+  = key:string ws ":" ws value:value { (key, value) }
+
+hash -> JsonValue<'input>
+  = ws "{" ws pairs:(key_value ** comma) ws "}" ws {
+    let mut map: HashMap<&'input str, JsonValue<'input>> = HashMap::with_capacity(pairs.len());
+    for (key, value) in pairs {
+      map.insert(key, value);
+    }
+    JsonValue::Object(map)
+  }
+
+value -> JsonValue<'input>
+  = json_string / number / array / hash / boolean
+
+pub root -> JsonValue<'input>
+  = hash / array
