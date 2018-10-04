@@ -4,10 +4,11 @@ version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-nom = { git = "https://github.com/geal/nom" }
+nom = "^4.0"
 #nom = {path = "/Users/geal/dev/rust/projects/nom" }
 bencher = "0.1"
 
 [profile.release]
 lto = "fat"
 codegen-units = 1
+debug = true

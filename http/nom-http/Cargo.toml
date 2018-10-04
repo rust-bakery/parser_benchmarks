@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-nom = {git = "https://github.com/Geal/nom" }
+nom = "^4.0"
 bencher = "0.1"
 
 [profile.release]

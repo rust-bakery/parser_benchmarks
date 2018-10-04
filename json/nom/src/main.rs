@@ -1,87 +1,80 @@
 #[macro_use]
 extern crate bencher;
-
 #[macro_use]
 extern crate nom;
 
 use bencher::{black_box, Bencher};
+use nom::{HexDisplay, alphanumeric, recognize_float, sp};
 
-use nom::IResult;
-use nom::HexDisplay;
-use nom::{alphanumeric, is_alphanumeric};
-use nom::whitespace::sp;
-use std::env;
-use std::fs::File;
-
-use std::str::{self,FromStr};
+use std::str;
 use std::collections::HashMap;
+
+pub fn is_string_character(c: u8) -> bool {
+  //FIXME: should validate unicode character
+  c != b'"' && c != b'\\'
+}
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue<'a> {
   Str(&'a str),
-  Num(f64),
   Boolean(bool),
+  Num(f64),
   Array(Vec<JsonValue<'a>>),
   Object(HashMap<&'a str, JsonValue<'a>>),
 }
 
-use nom::recognize_float;
 named!(float<f64>, flat_map!(recognize_float, parse_to!(f64)));
 
-pub fn is_string_token(c: u8) -> bool {
-  c != b'"' && c != b'\\' && c > 31 && c != 127
-}
-
+//FIXME: handle the cases like \u1234
 named!(
-  string<&[u8],&str>,
+  string<&str>,
   delimited!(
     char!('\"'),
-    map_res!(escaped!(take_while1!(is_string_token), '\\', one_of!("\"rn\\")), str::from_utf8),
+    map_res!(
+      escaped!(take_while1!(is_string_character), '\\', one_of!("\"bfnrt\\")),
+      str::from_utf8
+    ),
     char!('\"')
   )
 );
 
-named!(boolean<bool>,
-  alt!(
-    value!(false, tag!("false")) |
-    value!(true, tag!("true"))
-  )
+named!(
+  boolean<bool>,
+  alt!(value!(false, tag!("false")) | value!(true, tag!("true")))
 );
 
 named!(
   array<Vec<JsonValue>>,
-  delimited!(
+  preceded!(sp, delimited!(
     char!('['),
-    return_error!(separated_list!(char!(','), value)),
-    char!(']')
-  )
+    return_error!(separated_list!(preceded!(sp, char!(',')), value)),
+    preceded!(sp, char!(']'))
+  ))
 );
 
 named!(
   key_value<(&str, JsonValue)>,
+  //preceded!(sp, separated_pair!(string, char!(':'), value))
   separated_pair!(ws!(string), char!(':'), value)
 );
 
 named!(
   hash<HashMap<&str, JsonValue>>,
-  map!(
+  preceded!(sp, map!(
     delimited!(
-      pair!(char!('{'), call!(nom::sp)),
-      return_error!(separated_list!(char!(','), key_value)),
-      char!('}')
+      char!('{'),
+      return_error!(separated_list!(preceded!(sp, char!(',')), key_value)),
+      preceded!(sp, char!('}'))
     ),
-    |tuple_vec| {
-      tuple_vec
-        .into_iter()
-        .map(|(k, v)| (k, v))
-        .collect()
-    }
-  )
+    |tuple_vec| tuple_vec
+      .into_iter()
+      .collect()
+  ))
 );
 
 named!(
   value<JsonValue>,
-  ws!(alt!(
+  preceded!(sp, alt!(
     map!(string, JsonValue::Str)  |
     map!(float, JsonValue::Num)   |
     map!(array, JsonValue::Array) |
@@ -101,7 +94,6 @@ named!(
     not!(complete!(nom::sp))
   )
 );
-
 
 fn basic(b: &mut Bencher) {
   let data = b"  { \"a\"\t: 42,
@@ -157,15 +149,15 @@ fn parse<'a>(b: &mut Bencher, buffer: &'a[u8]) {
   });
 }
 
+
 //benchmark_group!(json, basic, data, apache);
 benchmark_group!(json, basic, data, apache, canada);
 benchmark_main!(json);
 
-
 /*
 fn main() {
   loop {
-    let data = include_bytes!("../../canada.json");
+    let data = include_bytes!("../../data.json");
     root(data).unwrap();
   }
 }
