@@ -1,0 +1,17 @@
+[package]
+authors = ["Michael Mior <michael.mior@gmail.com>"]
+name = "peg-json"
+version = "0.1.0"
+build = "build.rs"
+
+[build-dependencies]
+peg = "0.5.4"
+
+[dependencies]
+bencher = "0.1"
+
+[profile]
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
