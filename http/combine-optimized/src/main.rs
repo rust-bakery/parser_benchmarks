@@ -1,3 +1,6 @@
+#![feature(const_fn)]
+#![feature(stdsimd)]
+
 #[macro_use]
 extern crate bencher;
 #[macro_use]
@@ -5,10 +8,17 @@ extern crate combine;
 
 use bencher::{black_box, Bencher};
 
-use combine::parser::combinator::no_partial;
+use combine::{token, one_of, ParseError, parser, Parser, RangeStream, skip_many};
 use combine::range::{range, take_while1};
 use combine::stream::FullRangeStream;
-use combine::{many, one_of, token, ParseError, Parser, RangeStream};
+use combine::error::Consumed;
+use combine::parser::combinator::no_partial;
+
+
+#[path = "../../nom-optimized/src/combinators.rs"]
+mod combinators;
+
+use combinators::{is_header_value_token, is_token};
 
 #[derive(Debug)]
 struct Request<'a> {
@@ -23,36 +33,6 @@ struct Header<'a> {
     value: &'a [u8],
 }
 
-fn is_token(c: u8) -> bool {
-    match c {
-        128...255
-        | 0...31
-        | b'('
-        | b')'
-        | b'<'
-        | b'>'
-        | b'@'
-        | b','
-        | b';'
-        | b':'
-        | b'\\'
-        | b'"'
-        | b'/'
-        | b'['
-        | b']'
-        | b'?'
-        | b'='
-        | b'{'
-        | b'}'
-        | b' ' => false,
-        _ => true,
-    }
-}
-
-fn is_header_value_token(c: u8) -> bool {
-    return c == '\t' as u8 || (c > 31 && c != 127);
-}
-
 fn is_url_token(c: u8) -> bool {
     c > 0x20 && c < 0x7F
 }
@@ -61,14 +41,30 @@ fn is_horizontal_space(c: u8) -> bool {
     c == b' ' || c == b'\t'
 }
 
+fn take_while1_simd<'a, I, F>(range: &'static [u8], mut predicate: F) -> impl Parser<Output = &'a [u8], Input = I>
+where
+    I: FullRangeStream<Item = u8, Range = &'a [u8]>,
+    I::Error: ParseError<I::Item, I::Range, I::Position>,
+    F: FnMut(u8) -> bool,
+
+{
+    parser(move |input: &mut I| {
+        match combinators::take_while1_simd(input.range(), &mut predicate, range) {
+            Ok((_, value)) => {
+                let _ = input.uncons_range(value.len());
+                Ok((value, Consumed::Consumed(())))
+            }
+            Err(()) => Err(Consumed::Empty(I::Error::empty(input.position()).into())),
+        }
+    })
+}
+
 fn end_of_line<'a, I>() -> impl Parser<Output = (), Input = I> + 'a
 where
     I: RangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    range(b"\r\n" as &[u8])
-        .or(range(b"\n" as &[u8]))
-        .map(|_| ())
+    range(b"\r\n" as &[u8]).or(range(b"\n" as &[u8])).map(|_| ())
 }
 
 fn message_header<'a, I>() -> impl Parser<Output = Header<'a>, Input = I>
@@ -76,43 +72,50 @@ where
     I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
+    const HEADER_VALUE_RANGE:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
     let header_value = no_partial((
         take_while1(is_horizontal_space),
-        take_while1(is_header_value_token),
+        take_while1_simd(HEADER_VALUE_RANGE, is_header_value_token),
         end_of_line(),
     )).map(|(_, line, _)| line);
 
-    no_partial((take_while1(is_token), token(b':'), header_value))
-        .map(|(name, _, value)| Header { name, value })
+    no_partial((
+        take_while1(is_token),
+        token(b':'),
+        header_value,
+    )).map(|(name, _, value)| {
+        Header { name, value }
+    })
 }
 
-fn parse_http_request<'a, I>(input: I) -> Result<((Request<'a>, Vec<Header<'a>>), I), I::Error>
+fn parse_http_request<'a, I>(input: I, request: &mut Request<'a>, headers: &mut [Header<'a>]) -> Result<((), I), I::Error>
 where
     I: FullRangeStream<Item = u8, Range = &'a [u8]> + 'a,
     I::Error: ParseError<I::Item, I::Range, I::Position>,
 {
-    let http_version = range(&b"HTTP/1."[..]).with(one_of(b"01".iter().cloned()).map(|c| {
-        if c == b'0' {
-            0
-        } else {
-            1
-        }
-    }));
+    let http_version = range(&b"HTTP/1."[..]).with(one_of(b"01".iter().cloned()).map(|c| if c == b'0' { 0 } else { 1 }));
 
     let request_line = no_partial(struct_parser!(Request {
             method: take_while1(is_token),
             _: token(b' '),
-            uri: take_while1(is_url_token),
+            uri: take_while1_simd(b"\0 \x7F\x7F", is_url_token),
             _: token(b' '),
             version: http_version,
         }));
 
+    // Would have used an iterator here but unfortunately it does not optimize as well
+    let mut i = 0;
     let mut request = no_partial((
         request_line,
         end_of_line(),
-        many(message_header()),
+        skip_many(message_header().map(|header| {
+            if let Some(out) = headers.get_mut(i) {
+                *out = header;
+                i += 1;
+            }
+        })),
         end_of_line(),
-    )).map(|(request, _, headers, _)| (request, headers));
+    )).map(|(r, _, _, _)| *request = r);
 
     request.parse(input)
 }
@@ -163,11 +166,21 @@ fn parse(b: &mut Bencher, buffer: &[u8]) {
     b.iter(|| {
         let mut buf = black_box(buffer);
         let mut v = Vec::new();
+        let mut request = Request {
+            method: &[],
+            uri: &[],
+            version: 0,
+        };
+        let mut headers = [Header {
+            name: &[],
+            value: &[],
+        }; 16];
 
         while !buf.is_empty() {
-            match parse_http_request(buf) {
-                Ok((o, i)) => {
-                    v.push(o);
+            // Needed for inferrence for many(message_header)
+            match parse_http_request(buf, &mut request, &mut headers) {
+                Ok((_o, i)) => {
+                    v.push(());
 
                     buf = i
                 }

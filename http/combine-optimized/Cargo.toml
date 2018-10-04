@@ -1,10 +1,10 @@
 [package]
-name = "combine-json"
+name = "combine-http"
 version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-combine = "3.3.0"
+combine = "^3.0.0"
 bencher = "0.1"
 
 [profile.release]

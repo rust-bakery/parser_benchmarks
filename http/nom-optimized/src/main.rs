@@ -14,6 +14,8 @@ use nom::IResult;
 #[macro_use]
 mod combinators;
 
+use combinators::{is_header_value_token, is_token};
+
 #[derive(Debug)]
 struct Request<'a> {
     method:  &'a [u8],
@@ -31,42 +33,10 @@ fn is_url_token(c: u8) -> bool {
   c > 0x20 && c < 0x7F
 }
 
-const fn is_token_cst(c: u8) -> bool {
-  return !(
-    c <= 32         ||
-    c >= 127        ||
-    c == '(' as u8  ||
-    c == ')' as u8  ||
-    c == '<' as u8  ||
-    c == '>' as u8  ||
-    c == '@' as u8  ||
-    c == ',' as u8  ||
-    c == ';' as u8  ||
-    c == ':' as u8  ||
-    c == '\\' as u8 ||
-    c == '"' as u8  ||
-    c == '/' as u8  ||
-    c == '[' as u8  ||
-    c == ']' as u8  ||
-    c == '?' as u8  ||
-    c == '=' as u8  ||
-    c == '{' as u8  ||
-    c == '}' as u8
-  )
-}
-
-make_map!(is_token, is_token_cst);
-
 #[inline]
 fn is_header_name_token(b: u8) -> bool {
   is_token(b)
 }
-
-const fn is_header_value_token_cst(c: u8) -> bool {
-  return c == '\t' as u8 || (c > 31 && c != 127)
-}
-
-make_map!(is_header_value_token, is_header_value_token_cst);
 
 fn not_line_ending(c: u8) -> bool {
     c != b'\r' && c != b'\n'
@@ -90,7 +60,7 @@ named!(line_ending, alt!(tag!("\r\n") | tag!("\n")));
 fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
   let range = b"\0 \x7F\x7F";
   do_parse!(input,
-    method: take_while1!(is_token)     >>
+    method: take_while1_unrolled!(is_token)     >>
             char!(' ') >>
     uri:    take_while1_simd!(is_url_token, range) >>
             char!(' ') >>
@@ -108,7 +78,7 @@ fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a
       target_feature = "sse2")))]
 fn request_line<'a,'r>(input: &'a [u8], req: &'r mut Request<'a>) -> IResult<&'a[u8], ()> {
   do_parse!(input,
-    method: take_while1!(is_token)     >>
+    method: take_while1_unrolled!(is_token)     >>
             char!(' ') >>
     uri:    take_while1_unrolled!(is_url_token) >>
             char!(' ') >>
@@ -133,7 +103,7 @@ const header_value_range:&[u8] = b"\0\x08\x0A\x1F\x7F\x7F";
 #[cfg(all(any(target_arch = "x86", target_arch = "x86_64"),
       target_feature = "sse2"))]
 named!(header_value, delimited!(
-    take_while1!(is_horizontal_space),
+    take_while1_unrolled!(is_horizontal_space),
     take_while1_simd!(is_header_value_token, header_value_range),
     line_ending
 ));
@@ -141,13 +111,13 @@ named!(header_value, delimited!(
 #[cfg(not(all(any(target_arch = "x86", target_arch = "x86_64"),
       target_feature = "sse2")))]
 named!(header_value, delimited!(
-    take_while1!(is_horizontal_space),
+    take_while1_unrolled!(is_horizontal_space),
     take_while1_unrolled!(is_header_value_token),
     line_ending
 ));
 
 fn header<'a,'h>(input: &'a [u8], header: &'h mut Header<'a>) -> IResult<&'a[u8], ()> {
-  let (input, name) = try_parse!(input, take_while1!(is_header_name_token));
+  let (input, name) = try_parse!(input, take_while1_unrolled!(is_header_name_token));
   header.name = name;
   let (input, _) = try_parse!(input, char!(':'));
   let (input, value) = try_parse!(input, header_value);
