@@ -4,6 +4,8 @@ extern crate pest_grammars;
 #[macro_use]
 extern crate bencher;
 
+extern crate fnv;
+
 use bencher::{black_box, Bencher};
 
 use pest::Parser;
@@ -12,7 +14,7 @@ use pest::iterators::Pair;
 
 use pest_grammars::json::*;
 
-use std::collections::HashMap;
+use fnv::FnvHashMap as HashMap;
 
 enum Json<'i> {
     Null,

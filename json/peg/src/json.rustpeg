@@ -1,5 +1,6 @@
-use std::collections::HashMap;
 use std::str::FromStr;
+
+use fnv::FnvHashMap as HashMap;
 
 use super::JsonValue;
 
@@ -26,7 +27,7 @@ key_value -> (&'input str, JsonValue<'input>)
 
 hash -> JsonValue<'input>
   = ws "{" ws pairs:(key_value ** comma) ws "}" ws {
-    let mut map: HashMap<&'input str, JsonValue<'input>> = HashMap::with_capacity(pairs.len());
+    let mut map = HashMap::<&str, JsonValue>::with_capacity_and_hasher(pairs.len(), Default::default());
     for (key, value) in pairs {
       map.insert(key, value);
     }

@@ -7,6 +7,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 nom = "^4.0"
 #nom = {path = "/Users/geal/dev/rust/projects/nom" }
 bencher = "0.1"
+fnv = "1.0"
 
 [profile.release]
 lto = "fat"

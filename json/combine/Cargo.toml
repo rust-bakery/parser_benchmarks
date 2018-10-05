@@ -6,6 +6,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 [dependencies]
 combine = "3.3.0"
 bencher = "0.1"
+fnv = "1.0"
 
 [profile.release]
 lto = "fat"

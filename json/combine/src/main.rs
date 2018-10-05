@@ -4,8 +4,10 @@ extern crate bencher;
 #[macro_use]
 extern crate combine;
 
+extern crate fnv;
+
 use bencher::{black_box, Bencher};
-use std::collections::HashMap;
+use fnv::FnvHashMap as HashMap;
 use std::hash::Hash;
 use std::str;
 
@@ -169,7 +171,7 @@ fn json_test() {
     let expected = Object(
         vec![
             ("array", Array(vec![Number(1.0), String("".to_string())])),
-            ("object", Object(HashMap::new())),
+            ("object", Object(HashMap::default())),
             ("number", Number(3.14)),
             ("small_number", Number(0.59)),
             ("int", Number(-100.)),

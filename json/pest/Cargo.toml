@@ -7,6 +7,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 pest = "^1.0.0"
 pest_grammars = "^1.0.0"
 bencher = "0.1"
+fnv = "1.0"
 
 [profile.release]
 lto = "fat"

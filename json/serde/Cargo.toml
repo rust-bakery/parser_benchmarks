@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 bencher = "0.1"
+fnv = "1.0"
 serde = "1.0"
 serde_json = "1.0"
 

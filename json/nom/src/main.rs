@@ -3,11 +3,13 @@ extern crate bencher;
 #[macro_use]
 extern crate nom;
 
+extern crate fnv;
+
 use bencher::{black_box, Bencher};
+use fnv::FnvHashMap as HashMap;
 use nom::{HexDisplay, alphanumeric, recognize_float, sp};
 
 use std::str;
-use std::collections::HashMap;
 
 pub fn is_string_character(c: u8) -> bool {
   //FIXME: should validate unicode character
