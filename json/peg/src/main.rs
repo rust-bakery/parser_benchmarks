@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate bencher;
 
-use bencher::{black_box, Bencher};
+extern crate fnv;
 
-use std::collections::HashMap;
+use fnv::FnvHashMap as HashMap;
+use bencher::{black_box, Bencher};
 
 mod peg_json {
     include!(concat!(env!("OUT_DIR"), "/json.rs"));

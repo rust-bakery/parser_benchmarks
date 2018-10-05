@@ -1,15 +1,15 @@
 #[macro_use]
 extern crate bencher;
 
+extern crate fnv;
 extern crate serde;
 extern crate serde_json;
 
-use bencher::{black_box, Bencher};
-
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::fmt;
 
+use bencher::{black_box, Bencher};
+use fnv::FnvHashMap as HashMap;
 use serde::de::{Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 
 #[derive(Debug, PartialEq)]
@@ -74,7 +74,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Value<'a> {
             where
                 A: MapAccess<'de>,
             {
-                let mut object = HashMap::new();
+                let mut object = HashMap::default();
                 while let Some((key, value)) = map.next_entry()? {
                     object.insert(key, value);
                 }
