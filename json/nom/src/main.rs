@@ -65,6 +65,7 @@ named!(
   separated_pair!(ws!(string), char!(':'), value)
 );
 
+/*
 named!(
   hash<HashMap<&str, JsonValue>>,
   map!(
@@ -77,6 +78,42 @@ named!(
       .into_iter()
       .collect()
   )
+);
+*/
+
+fn hash_internal(input: &[u8]) -> nom::IResult<&[u8], HashMap<&str, JsonValue>> {
+  match key_value(input) {
+    Err(nom::Err::Error(_)) => Ok((input, HashMap::default())),
+    Err(e) => Err(e),
+    Ok((i, (key, value))) => {
+      let mut map = HashMap::default();
+      map.insert(key, value);
+
+      let mut input = i;
+      loop {
+        match do_parse!(input, sp >> char!(',') >> kv: key_value >> (kv)) {
+          Err(nom::Err::Error(_)) => break Ok((input, map)),
+          Err(e) => break Err(e),
+          Ok((i, (key, value))) => {
+            map.insert(key, value);
+            input = i;
+          }
+        }
+      }
+    }
+  }
+
+}
+
+named!(
+  hash<HashMap<&str, JsonValue>>,
+    delimited!(
+      char!('{'),
+      return_error!(
+        hash_internal
+      ),
+      preceded!(sp, char!('}'))
+    )
 );
 
 named!(
