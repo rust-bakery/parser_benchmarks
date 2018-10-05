@@ -7,7 +7,7 @@ extern crate fnv;
 
 use bencher::{black_box, Bencher};
 use fnv::FnvHashMap as HashMap;
-use nom::{HexDisplay, alphanumeric, recognize_float, sp};
+use nom::{HexDisplay, alphanumeric, recognize_float};
 
 use std::str;
 
@@ -15,6 +15,12 @@ pub fn is_string_character(c: u8) -> bool {
   //FIXME: should validate unicode character
   c != b'"' && c != b'\\'
 }
+
+pub fn is_space(c: u8) -> bool {
+  c == b' ' || c == b'\t' || c == b'\r' || c == b'\n'
+}
+
+named!(sp, take_while!(is_space));
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue<'a> {
@@ -56,7 +62,6 @@ named!(
 
 named!(
   key_value<(&str, JsonValue)>,
-  //preceded!(sp, separated_pair!(string, char!(':'), value))
   separated_pair!(ws!(string), char!(':'), value)
 );
 
@@ -88,12 +93,12 @@ named!(
 named!(
   root<JsonValue>,
   delimited!(
-    call!(nom::sp),
+    call!(sp),
     alt!(
       map!(hash, JsonValue::Object) |
       map!(array, JsonValue::Array)
     ),
-    not!(complete!(nom::sp))
+    not!(complete!(sp))
   )
 );
 
