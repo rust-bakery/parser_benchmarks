@@ -47,11 +47,11 @@ named!(
 
 named!(
   array<Vec<JsonValue>>,
-  preceded!(sp, delimited!(
+  delimited!(
     char!('['),
     return_error!(separated_list!(preceded!(sp, char!(',')), value)),
     preceded!(sp, char!(']'))
-  ))
+  )
 );
 
 named!(
@@ -62,7 +62,7 @@ named!(
 
 named!(
   hash<HashMap<&str, JsonValue>>,
-  preceded!(sp, map!(
+  map!(
     delimited!(
       char!('{'),
       return_error!(separated_list!(preceded!(sp, char!(',')), key_value)),
@@ -71,7 +71,7 @@ named!(
     |tuple_vec| tuple_vec
       .into_iter()
       .collect()
-  ))
+  )
 );
 
 named!(
