@@ -1,16 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Criterion.Main                   (bench, bgroup, defaultMain,
-                                                   env, nfIO, whnf, whnfIO)
-import qualified Data.Attoparsec.Binary           as Bin
+import           Criterion.Main                   (bench, bgroup, defaultMain, env, whnf)
 import qualified Data.ByteString                  as B
-import qualified Data.ByteString.Char8            as C8
 
 import           Control.Applicative
 import           Data.Attoparsec.ByteString       as P
 import           Data.Attoparsec.ByteString.Char8 (char8, endOfLine, isDigit_w8)
-import           Data.Attoparsec.ByteString.Char8 (isEndOfLine,
-                                                   isHorizontalSpace)
+import           Data.Attoparsec.ByteString.Char8 (isEndOfLine, isHorizontalSpace)
 import           Data.ByteString                  (ByteString)
 import           Data.Word                        (Word8)
 
@@ -48,34 +44,23 @@ messageHeader = Header
 request :: Parser (Request, [Header])
 request = (,) <$> requestLine <*> many messageHeader <* endOfLine
 
+allRequests :: Parser [(Request, [Header])]
 allRequests = many1 request
-
-data Response = Response {
-      responseVersion :: ByteString
-    , responseCode    :: ByteString
-    , responseMsg     :: ByteString
-    } deriving (Eq, Ord, Show)
-
-responseLine :: Parser Response
-responseLine = Response <$> (httpVersion <* char8 ' ')
-                        <*> (P.takeWhile isDigit_w8 <* char8 ' ')
-                        <*> (takeTill isEndOfLine <* endOfLine)
-
-response :: Parser (Response, [Header])
-response = (,) <$> responseLine <*> many messageHeader <* endOfLine
 
 smallFile :: FilePath
 smallFile = "../http-requests.txt"
+
 biggerFile :: FilePath
 biggerFile = "../bigger.txt"
 
+setupEnv :: IO (ByteString, ByteString)
 setupEnv = do
   small  <- B.readFile smallFile
   bigger <- B.readFile biggerFile
   return (small, bigger)
 
-criterion :: IO ()
-criterion = defaultMain
+main :: IO ()
+main = defaultMain
     [
       env setupEnv $ \ ~(small, bigger) ->
       bgroup "IO"
@@ -84,7 +69,3 @@ criterion = defaultMain
         , bench "bigger"         $ whnf (P.parseOnly allRequests) bigger
         ]
     ]
-
-main :: IO ()
-main = criterion
---main = B.readFile biggerFile >>= print . P.parseOnly allRequests
