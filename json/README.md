@@ -12,10 +12,11 @@ The benchmarks were run on a late 2013 Macbook Pro, quad core 2,3 GHz Intel Core
 of each column. Some parsers work on strings, other on raw byte slices (and need to convert strings to `&str`).
 
 
-|   &[u8] parsers   | basic                               | canada.json |apache_builds.json | data.json |
-| ----------------- | ----------------------------------- | ----------- | ----------------- | --------- |
-| serde_json 1.0.32 | 809 ns/iter (+/- 52) = 93 MB/s      | **13,894,038 ns/iter (+/- 891,963) = 162 MB/s** | 518,642 ns/iter (+/- 34,784) = 245 MB/s | 43,749 ns/iter (+/- 22,790) = 211 MB/s |
-| nom 4.2.3         | **754 ns/iter (+/- 95) = 100 MB/s** | 38,646,927 ns/iter (+/- 3,008,518) = 58 MB/s | **458,404 ns/iter (+/- 36,534) = 277 MB/s** | **33,483 ns/iter (+/- 2,518) = 276 MB/s** |
+|   &[u8] parsers   | basic                                | canada.json |apache_builds.json | data.json |
+| ----------------- | ------------------------------------ | ----------- | ----------------- | --------- |
+| serde_json 1.0.32 | 809 ns/iter (+/- 52) = 93 MB/s       | **13,894,038 ns/iter (+/- 891,963) = 162 MB/s** | 518,642 ns/iter (+/- 34,784) = 245 MB/s | 43,749 ns/iter (+/- 22,790) = 211 MB/s |
+| nom 4.2.3         | 754 ns/iter (+/- 95) = 100 MB/s      | 38,646,927 ns/iter (+/- 3,008,518) = 58 MB/s    | **458,404 ns/iter (+/- 36,534) = 277 MB/s** | 33,483 ns/iter (+/- 2,518) = 276 MB/s |
+| nom 5.0.0         | **672 ns/iter (+/- 112) = 113 MB/s** | 22,642,524 ns/iter (+/- 1,192,957) = 99 MB/s    | 462,347 ns/iter (+/- 39,991) = 275 MB/s | **33,326 ns/iter (+/- 3,606) = 277 MB/s** |
 
 |   &str parsers    | basic                             | canada.json |apache_builds.json | data.json |
 | ----------------- | --------------------------------- | ----------- | ----------------- | --------- |
@@ -24,3 +25,4 @@ of each column. Some parsers work on strings, other on raw byte slices (and need
 | peg 0.5.7         | 3,101 ns/iter (+/- 312) = 24 MB/s | 74,108,415 ns/iter (+/- 3,583,293) = 30 MB/s | 1,758,852 ns/iter (+/- 311,128) = 72 MB/s | 131,039 ns/iter (+/- 18,700) = 70 MB/s |
 | serde_json 1.0.32 | **638 ns/iter (+/- 61) = 119 MB/s** | **12,367,415 ns/iter (+/- 752,284) = 182 MB/s** | **363,077 ns/iter (+/- 27,709) = 350 MB/s** | **26,234 ns/iter (+/- 4,009) = 352 MB/s** |
 | nom 4.2.3         | 1,159 ns/iter (+/- 82) = 65 MB/s | 45,030,200 ns/iter (+/- 2,797,900) = 49 MB/s | 597,444 ns/iter (+/- 39,718) = 213 MB/s | 45,852 ns/iter (+/- 3,691) = 201 MB/s |
+| nom 5.0.0         | 1,009 ns/iter (+/- 91) = 75 MB/s | 27,701,120 ns/iter (+/- 1,862,896) = 81 MB/s | 579,533 ns/iter (+/- 48,144) = 219 MB/s | 44,684 ns/iter (+/- 4,855) = 207 MB/s |

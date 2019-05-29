@@ -12,7 +12,17 @@ static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 use bencher::{black_box, Bencher};
 use fnv::FnvHashMap as HashMap;
-use nom::{HexDisplay, alphanumeric, recognize_float};
+//use nom::{HexDisplay, alphanumeric, recognize_float};
+use nom::{
+  branch::alt,
+  bytes::complete::{escaped, tag, take_while, take_while1, is_a},
+  character::complete::{alphanumeric1 as alphanumeric, char, one_of},
+  combinator::{map, map_res, opt, cut, iterator},
+  multi::separated_list,
+  number::complete::double,
+  sequence::{delimited, preceded, separated_pair, terminated, pair},
+  Err, IResult, HexDisplay
+};
 
 use std::str;
 
@@ -25,7 +35,9 @@ pub fn is_space(c: char) -> bool {
   c == ' ' || c == '\t' || c == '\r' || c == '\n'
 }
 
-named!(sp<&str, &str>, take_while!(is_space));
+fn sp(i: &str) -> IResult<&str, &str> {
+  take_while(is_space)(i)
+}
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue<'a> {
@@ -36,113 +48,73 @@ pub enum JsonValue<'a> {
   Object(HashMap<&'a str, JsonValue<'a>>),
 }
 
-named!(float<&str, f64>, flat_map!(recognize_float, parse_to!(f64)));
-
 //FIXME: handle the cases like \u1234
-named!(
-  string<&str, &str>,
-  delimited!(
-    char!('\"'),
-    //map_res!(
-      escaped!(take_while1!(is_string_character), '\\', one_of!("\"bfnrt\\")),
-    //  str::from_utf8
-    //),
-    char!('\"')
-  )
-);
-
-named!(
-  boolean<&str, bool>,
-  alt!(value!(false, tag!("false")) | value!(true, tag!("true")))
-);
-
-named!(
-  array<&str, Vec<JsonValue>>,
-  delimited!(
-    char!('['),
-    return_error!(separated_list!(preceded!(sp, char!(',')), value)),
-    preceded!(sp, char!(']'))
-  )
-);
-
-named!(
-  key_value<&str, (&str, JsonValue)>,
-  separated_pair!(ws!(string), char!(':'), value)
-);
-
-/*
-named!(
-  hash<HashMap<&str, JsonValue>>,
-  map!(
-    delimited!(
-      char!('{'),
-      return_error!(separated_list!(preceded!(sp, char!(',')), key_value)),
-      preceded!(sp, char!('}'))
-    ),
-    |tuple_vec| tuple_vec
-      .into_iter()
-      .collect()
-  )
-);
-*/
-
-fn hash_internal(input: &str) -> nom::IResult<&str, HashMap<&str, JsonValue>> {
-  match key_value(input) {
-    Err(nom::Err::Error(_)) => Ok((input, HashMap::default())),
-    Err(e) => Err(e),
-    Ok((i, (key, value))) => {
-      let mut map = HashMap::default();
-      map.insert(key, value);
-
-      let mut input = i;
-      loop {
-        match do_parse!(input, sp >> char!(',') >> kv: key_value >> (kv)) {
-          Err(nom::Err::Error(_)) => break Ok((input, map)),
-          Err(e) => break Err(e),
-          Ok((i, (key, value))) => {
-            map.insert(key, value);
-            input = i;
-          }
-        }
-      }
-    }
-  }
-
+fn string(i: &str) -> IResult<&str, &str> {
+  preceded(
+    char('\"'),
+    cut(terminated(
+        escaped(take_while1(is_string_character), '\\', one_of("\"bfnrt\\")),
+        char('\"')
+    ))
+  )(i)
 }
 
-named!(
-  hash<&str, HashMap<&str, JsonValue>>,
-    delimited!(
-      char!('{'),
-      return_error!(
-        hash_internal
-      ),
-      preceded!(sp, char!('}'))
-    )
-);
+fn boolean(i: &str) -> IResult<&str, bool> {
+  alt((
+      map(tag("false"), |_| false),
+      map(tag("true"), |_| true)
+  ))(i)
+}
 
-named!(
-  value<&str, JsonValue>,
-  preceded!(sp, alt!(
-    map!(string, JsonValue::Str)  |
-    map!(float, JsonValue::Num)   |
-    map!(array, JsonValue::Array) |
-    map!(hash, JsonValue::Object) |
-    map!(boolean, JsonValue::Boolean)
-  ))
-);
+fn array(i: &str) -> IResult<&str, Vec<JsonValue>> {
+  preceded(char('['),
+    cut(terminated(
+        separated_list(preceded(sp, char(',')), value),
+        preceded(sp, char(']'))))
+  )(i)
+}
 
-named!(
-  root<&str, JsonValue>,
-  delimited!(
-    call!(sp),
-    alt!(
-      map!(hash, JsonValue::Object) |
-      map!(array, JsonValue::Array)
-    ),
-    not!(complete!(sp))
-  )
-);
+fn key_value(i: &str) -> IResult<&str, (&str, JsonValue)> {
+  separated_pair(preceded(sp, string), cut(preceded(sp, char(':'))), value)(i)
+}
+
+fn hash(i: &str) -> IResult<&str, HashMap<&str, JsonValue>> {
+  let (i, _) = char('{')(i)?;
+  let mut res = HashMap::default();
+
+  match key_value(i) {
+    Err(_) => {
+      preceded(sp, char('}'))(i).map(|(i, _)| (i, res))
+    },
+    Ok((i, first)) => {
+      let mut it = iterator(i, preceded(pair(sp, char(',')), key_value));
+      res.extend(&mut it);
+
+      let (i, _) = it.finish()?;
+      preceded(sp, char('}'))(i).map(|(i, _)| (i, res))
+    }
+  }
+}
+
+fn value(i: &str) -> IResult<&str, JsonValue> {
+  preceded(sp,
+    alt((
+      map(hash, JsonValue::Object),
+      map(array, JsonValue::Array),
+      map(string, JsonValue::Str),
+      map(double, JsonValue::Num),
+      map(boolean, JsonValue::Boolean)
+    ))
+  )(i)
+}
+
+fn root(i: &str) -> IResult<&str, JsonValue> {
+  delimited(
+    sp,
+    alt((map(hash, JsonValue::Object), map(array, JsonValue::Array))),
+    opt(sp)
+  )(i)
+}
 
 fn basic(b: &mut Bencher) {
   let data = "  { \"a\"\t: 42,
@@ -188,8 +160,8 @@ fn parse<'a>(b: &mut Bencher, buffer: &'a str) {
         return o;
       }
       Err(err) => {
-        if let &nom::Err::Error(nom::Context::Code(ref i, ref e)) = &err {
-          panic!("got err {:?} at:\n{}", e, i.to_hex(16));
+        if let &nom::Err::Error((ref i, ref e)) = &err {
+          panic!("got err {:?} at:\n{}", e, i);
         } else {
           panic!("got err: {:?}", err)
         }

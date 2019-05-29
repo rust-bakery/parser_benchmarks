@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-nom = "^4.0"
+nom = "^5.0.0-beta2"
 #nom = {path = "/Users/geal/dev/rust/projects/nom" }
 bencher = "0.1"
 fnv = "1.0"
