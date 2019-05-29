@@ -7,6 +7,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 combine = "3.3.0"
 bencher = "0.1"
 fnv = "1.0"
+jemallocator = "0.1.8"
 
 [profile.release]
 lto = "fat"

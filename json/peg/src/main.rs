@@ -2,6 +2,10 @@
 extern crate bencher;
 
 extern crate fnv;
+extern crate jemallocator;
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 use fnv::FnvHashMap as HashMap;
 use bencher::{black_box, Bencher};

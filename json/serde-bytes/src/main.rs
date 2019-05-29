@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate bencher;
 
-extern crate fnv;
 extern crate serde;
 extern crate serde_json;
 extern crate jemallocator;
@@ -9,11 +8,12 @@ extern crate jemallocator;
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
+use bencher::{black_box, Bencher};
+
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::fmt;
 
-use bencher::{black_box, Bencher};
-use fnv::FnvHashMap as HashMap;
 use serde::de::{Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 
 #[derive(Debug, PartialEq)]
@@ -78,7 +78,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Value<'a> {
             where
                 A: MapAccess<'de>,
             {
-                let mut object = HashMap::default();
+                let mut object = HashMap::new();
                 while let Some((key, value)) = map.next_entry()? {
                     object.insert(key, value);
                 }
@@ -91,7 +91,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for Value<'a> {
 }
 
 fn basic(b: &mut Bencher) {
-    let data = "  { \"a\"\t: 42,
+    let data = b"  { \"a\"\t: 42,
   \"b\": [ \"x\", \"y\", 12 ] ,
   \"c\": { \"hello\" : \"world\"
   }
@@ -102,28 +102,38 @@ fn basic(b: &mut Bencher) {
 }
 
 fn data(b: &mut Bencher) {
-    let data = include_str!("../../data.json");
+    let data = include_bytes!("../../data.json");
     b.bytes = data.len() as u64;
     parse(b, data)
 }
 
 fn canada(b: &mut Bencher) {
-    let data = include_str!("../../canada.json");
+    let data = include_bytes!("../../canada.json");
     b.bytes = data.len() as u64;
     parse(b, data)
 }
 
 fn apache(b: &mut Bencher) {
-    let data = include_str!("../../apache_builds.json");
+    let data = include_bytes!("../../apache_builds.json");
     b.bytes = data.len() as u64;
     parse(b, data)
 }
 
-fn parse(b: &mut Bencher, buffer: &str) {
+fn parse(b: &mut Bencher, buffer: &[u8]) {
     b.iter(|| {
-        serde_json::from_str::<Value>(black_box(buffer)).unwrap()
+        serde_json::from_slice::<Value>(black_box(buffer)).unwrap()
     });
 }
 
+
 benchmark_group!(json, basic, data, apache, canada);
 benchmark_main!(json);
+
+/*
+fn main() {
+  loop {
+    let data = include_str!("../../data.json");
+    serde_json::from_str::<Value>(data).unwrap();
+  }
+}
+*/

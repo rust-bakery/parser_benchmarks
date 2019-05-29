@@ -16,16 +16,16 @@ use nom::{HexDisplay, alphanumeric, recognize_float};
 
 use std::str;
 
-pub fn is_string_character(c: u8) -> bool {
+pub fn is_string_character(c: char) -> bool {
   //FIXME: should validate unicode character
-  c != b'"' && c != b'\\'
+  c != '"' && c != '\\'
 }
 
-pub fn is_space(c: u8) -> bool {
-  c == b' ' || c == b'\t' || c == b'\r' || c == b'\n'
+pub fn is_space(c: char) -> bool {
+  c == ' ' || c == '\t' || c == '\r' || c == '\n'
 }
 
-named!(sp, take_while!(is_space));
+named!(sp<&str, &str>, take_while!(is_space));
 
 #[derive(Debug, PartialEq)]
 pub enum JsonValue<'a> {
@@ -36,28 +36,28 @@ pub enum JsonValue<'a> {
   Object(HashMap<&'a str, JsonValue<'a>>),
 }
 
-named!(float<f64>, flat_map!(recognize_float, parse_to!(f64)));
+named!(float<&str, f64>, flat_map!(recognize_float, parse_to!(f64)));
 
 //FIXME: handle the cases like \u1234
 named!(
-  string<&str>,
+  string<&str, &str>,
   delimited!(
     char!('\"'),
-    map_res!(
+    //map_res!(
       escaped!(take_while1!(is_string_character), '\\', one_of!("\"bfnrt\\")),
-      str::from_utf8
-    ),
+    //  str::from_utf8
+    //),
     char!('\"')
   )
 );
 
 named!(
-  boolean<bool>,
+  boolean<&str, bool>,
   alt!(value!(false, tag!("false")) | value!(true, tag!("true")))
 );
 
 named!(
-  array<Vec<JsonValue>>,
+  array<&str, Vec<JsonValue>>,
   delimited!(
     char!('['),
     return_error!(separated_list!(preceded!(sp, char!(',')), value)),
@@ -66,7 +66,7 @@ named!(
 );
 
 named!(
-  key_value<(&str, JsonValue)>,
+  key_value<&str, (&str, JsonValue)>,
   separated_pair!(ws!(string), char!(':'), value)
 );
 
@@ -86,7 +86,7 @@ named!(
 );
 */
 
-fn hash_internal(input: &[u8]) -> nom::IResult<&[u8], HashMap<&str, JsonValue>> {
+fn hash_internal(input: &str) -> nom::IResult<&str, HashMap<&str, JsonValue>> {
   match key_value(input) {
     Err(nom::Err::Error(_)) => Ok((input, HashMap::default())),
     Err(e) => Err(e),
@@ -111,7 +111,7 @@ fn hash_internal(input: &[u8]) -> nom::IResult<&[u8], HashMap<&str, JsonValue>> 
 }
 
 named!(
-  hash<HashMap<&str, JsonValue>>,
+  hash<&str, HashMap<&str, JsonValue>>,
     delimited!(
       char!('{'),
       return_error!(
@@ -122,7 +122,7 @@ named!(
 );
 
 named!(
-  value<JsonValue>,
+  value<&str, JsonValue>,
   preceded!(sp, alt!(
     map!(string, JsonValue::Str)  |
     map!(float, JsonValue::Num)   |
@@ -133,7 +133,7 @@ named!(
 );
 
 named!(
-  root<JsonValue>,
+  root<&str, JsonValue>,
   delimited!(
     call!(sp),
     alt!(
@@ -145,7 +145,7 @@ named!(
 );
 
 fn basic(b: &mut Bencher) {
-  let data = b"  { \"a\"\t: 42,
+  let data = "  { \"a\"\t: 42,
   \"b\": [ \"x\", \"y\", 12 ] ,
   \"c\": { \"hello\" : \"world\"
   }
@@ -156,31 +156,31 @@ fn basic(b: &mut Bencher) {
 }
 
 fn data(b: &mut Bencher) {
-  let data = include_bytes!("../../data.json");
+  let data = include_str!("../../data.json");
   b.bytes = data.len() as u64;
   parse(b, data)
 }
 
 fn canada(b: &mut Bencher) {
-  let data = include_bytes!("../../canada.json");
+  let data = include_str!("../../canada.json");
   b.bytes = data.len() as u64;
   parse(b, data)
 }
 
 #[test]
 fn test() {
-  let data = include_bytes!("../../test.json");
+  let data = include_str!("../../test.json");
   println!("test: {:?}", root(data).unwrap());
   panic!()
 }
 
 fn apache(b: &mut Bencher) {
-  let data = include_bytes!("../../apache_builds.json");
+  let data = include_str!("../../apache_builds.json");
   b.bytes = data.len() as u64;
   parse(b, data)
 }
 
-fn parse<'a>(b: &mut Bencher, buffer: &'a[u8]) {
+fn parse<'a>(b: &mut Bencher, buffer: &'a str) {
   b.iter(|| {
     let mut buf = black_box(buffer);
     match root(buf) {

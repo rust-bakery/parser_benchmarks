@@ -6,6 +6,11 @@ extern crate combine;
 
 extern crate fnv;
 
+extern crate jemallocator;
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 use bencher::{black_box, Bencher};
 use fnv::FnvHashMap as HashMap;
 use std::hash::Hash;
