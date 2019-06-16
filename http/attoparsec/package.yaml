@@ -1,0 +1,22 @@
+name:                http
+version:             0.1.1.0
+homepage:            https://github.com/rust-bakery/parser_benchmarks/tree/master/http/attoparsec
+license:             MIT
+author:              Geoffroy Couprie
+maintainer:          geo.couprie@gmail.com
+category:            Testing
+
+dependencies:
+  - base >= 4.7 && < 5
+  - attoparsec
+  - bytestring
+  - criterion
+
+ghc-options: -Wall -O2 -fllvm
+  # -pgmlo opt-3.4
+  # -pgmlc llc-3.4
+
+executables:
+  http:
+    source-dirs:      src
+    main:             Main.hs
