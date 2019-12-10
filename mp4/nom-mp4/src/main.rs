@@ -1,8 +1,11 @@
 #[macro_use]
 extern crate bencher;
-
 #[macro_use]
 extern crate nom;
+extern crate jemallocator;
+
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 use bencher::{Bencher,black_box};
 use nom::{IResult, Needed, Err, HexDisplay, number::streaming::be_u32};
