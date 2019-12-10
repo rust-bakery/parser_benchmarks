@@ -5,5 +5,5 @@ version = "0.0.1"
 authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 
 [dependencies]
-nom = {git = "https://github.com/Geal/nom"}
+nom = "5"
 bencher = "0.1"

@@ -5,24 +5,22 @@ extern crate bencher;
 extern crate nom;
 
 use bencher::{Bencher,black_box};
-use nom::{IResult,Needed,be_u32};
-use nom::IResult::*;
+use nom::{IResult, Needed, Err, number::streaming::be_u32};
 
 use std::str::from_utf8;
 
 fn mp4_box(input:&[u8]) -> IResult<&[u8], &[u8]> {
   match be_u32(input) {
-    Done(i, offset) => {
+    Ok((i, offset)) => {
       let sz: usize = offset as usize;
       //println!("size: {}", sz);
       if i.len() >= sz - 4 {
-        return Done(&i[(sz-4)..], &i[0..(sz-4)])
+        return Ok((&i[(sz-4)..], &i[0..(sz-4)]))
       } else {
-        return Incomplete(Needed::Size(4 + offset as usize))
+        return Err(Err::Incomplete(Needed::Size(4 + offset as usize)))
       }
     }
-    Error(e)      => Error(e),
-    Incomplete(e) => Incomplete(e)
+    Err(e) => Err(e),
   }
 }
 
@@ -65,7 +63,7 @@ fn filetype_box<'a>(input: &'a[u8]) -> IResult<&'a [u8], MP4Box > {
 }
 
 fn unknown_box(input:&[u8]) -> IResult<&[u8], MP4Box> {
-  Done(input, MP4Box::Unknown)
+  Ok((input, MP4Box::Unknown))
 }
 
 named!(box_parser_internal<&[u8], MP4Box>,
@@ -89,7 +87,7 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
   //println!("bytes:\n{}", bytes.to_hex(8));
   //println!("bytes length: {}", bytes.len());
   match box_parser(bytes) {
-    Done(i, o) => {
+    Ok((i, o)) => {
       /*match o {
         MP4Box::Ftyp(f) => println!("-> FTYP: {:?}", f),
         MP4Box::Moov    => println!("-> MOOV"),
@@ -101,16 +99,21 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
       }*/
       //println!("remaining:\n{}", i.to_hex(8));
       //println!("got o");
-      Done(i,o)
+      Ok((i,o))
     },
-    Error(a) => {
+    Err(Err::Error(a)) => {
       println!("mp4 parsing error: {:?}", a);
       assert!(false);
-      Error(a)
+      Err(Err::Error(a))
     },
-    Incomplete(a) => {
+    Err(Err::Failure(a)) => {
+      println!("mp4 parsing error: {:?}", a);
+      assert!(false);
+      Err(Err::Failure(a))
+    },
+    Err(Err::Incomplete(a)) => {
       //println!("mp4 incomplete: {:?}", a);
-      Incomplete(a)
+      Err(Err::Incomplete(a))
     }
   }
 }
