@@ -5,7 +5,7 @@ extern crate bencher;
 extern crate nom;
 
 use bencher::{Bencher,black_box};
-use nom::{IResult, Needed, Err, number::streaming::be_u32};
+use nom::{IResult, Needed, Err, HexDisplay, number::streaming::be_u32};
 
 use std::str::from_utf8;
 
@@ -51,7 +51,7 @@ fn filetype_box<'a>(input: &'a[u8]) -> IResult<&'a [u8], MP4Box > {
        ftyp               >>
     m: brand_name         >>
     v: take!(4)           >>
-    c: many0!(brand_name) >>
+    c: many0!(complete!(brand_name)) >>
     (
       MP4Box::Ftyp(FileType{
         major_brand: m,
@@ -84,12 +84,12 @@ fn box_parser(input:&[u8]) -> IResult<&[u8], MP4Box> {
 }
 
 fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
-  //println!("bytes:\n{}", bytes.to_hex(8));
+  //println!("bytes:\n{}", (&bytes[..64]).to_hex(8));
   //println!("bytes length: {}", bytes.len());
   match box_parser(bytes) {
     Ok((i, o)) => {
       /*match o {
-        MP4Box::Ftyp(f) => println!("-> FTYP: {:?}", f),
+        MP4Box::Ftyp(ref f) => println!("-> FTYP: {:?}", f),
         MP4Box::Moov    => println!("-> MOOV"),
         MP4Box::Mdat    => println!("-> MDAT"),
         MP4Box::Free    => println!("-> FREE"),
@@ -112,13 +112,13 @@ fn data_interpreter(bytes:&[u8]) -> IResult<&[u8], MP4Box> {
       Err(Err::Failure(a))
     },
     Err(Err::Incomplete(a)) => {
-      //println!("mp4 incomplete: {:?}", a);
+      //println!("mp4 incomplete: {:?}, input was {} bytes", a, bytes.len());
       Err(Err::Incomplete(a))
     }
   }
 }
 
-named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(data_interpreter));
+named!(full_data_interpreter(&[u8]) -> Vec<MP4Box>, many0!(complete!(data_interpreter)));
 
 fn small_test(b: &mut Bencher) {
   let data = include_bytes!("../../small.mp4");
