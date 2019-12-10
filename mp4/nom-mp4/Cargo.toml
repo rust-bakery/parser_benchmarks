@@ -7,3 +7,7 @@ authors = ["Geoffroy Couprie <geo.couprie@gmail.com>"]
 [dependencies]
 nom = "5"
 bencher = "0.1"
+
+[[bin]]
+name = "main"
+harness = false
